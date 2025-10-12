@@ -102,6 +102,9 @@ jobs:
     - name: TypeScript type checking
       run: npx tsc --noEmit
 
+    - name: Run tests
+      run: npm run test
+
     - name: ESLint security rules
       run: echo "ESLint security scan temporarily disabled due to config issues" || true
 
