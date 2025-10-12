@@ -4,6 +4,8 @@ import CameraStream from './components/CameraStream';
 import DetectionOverlay from './components/DetectionOverlay';
 import EventsList from './components/EventsList';
 import SettingsPanel from './components/SettingsPanel';
+import { AuthProvider } from './components/AuthProvider';
+import { ProtectedRoute, UserProfileDropdown } from './components/Auth';
 import syncQueueService from './utils/syncQueue';
 import localStorageService, { SecurityEvent as StoredSecurityEvent } from './utils/storage';
 
@@ -300,6 +302,9 @@ function App() {
                 <span>{securityEvents.length}</span>
               </div>
             )}
+
+            {/* User Authentication */}
+            <UserProfileDropdown />
           </div>
         </div>
       </header>
@@ -436,4 +441,15 @@ function App() {
   );
 }
 
-export default App;
+// Wrap App with Authentication
+function AuthenticatedApp() {
+  return (
+    <AuthProvider>
+      <ProtectedRoute>
+        <App />
+      </ProtectedRoute>
+    </AuthProvider>
+  );
+}
+
+export default AuthenticatedApp;

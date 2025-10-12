@@ -85,9 +85,47 @@ npm run mobile:build
 - **Camera**: WebRTC Media APIs
 - **Styling**: Tailwind CSS + Framer Motion
 - **Storage**: IndexedDB + Azure Blob Storage
+- **Authentication**: NextAuth.js + OAuth providers
+- **Database**: Prisma + SQLite/PostgreSQL
 - **PWA**: Workbox + Service Workers
 - **Desktop**: Electron (optional)
 - **Mobile**: Capacitor (optional)
+
+## 🔐 Authentication Setup
+
+This app includes OAuth authentication with Google and GitHub providers. To set up authentication for development:
+
+### 1. Copy Environment Variables
+```bash
+cp .env.example .env.local
+```
+
+### 2. Google OAuth Setup
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Enable the Google+ API
+4. Go to **Credentials** > **Create Credentials** > **OAuth 2.0 Client IDs**
+5. Set the authorized redirect URI to: `http://localhost:3001/api/auth/callback/google`
+6. Copy the Client ID and Client Secret to your `.env.local` file
+
+### 3. GitHub OAuth Setup
+1. Go to **GitHub Settings** > **Developer settings** > **OAuth Apps**
+2. Click **New OAuth App**
+3. Set Homepage URL to: `http://localhost:3001`
+4. Set Authorization callback URL to: `http://localhost:3001/api/auth/callback/github`
+5. Copy the Client ID and Client Secret to your `.env.local` file
+
+### 4. Generate NextAuth Secret
+```bash
+openssl rand -base64 32
+```
+Add this to your `.env.local` file as `NEXTAUTH_SECRET`
+
+### 5. Initialize Database
+```bash
+npx prisma generate
+npx prisma db push
+```
 
 ## 📱 Deployment Options
 
