@@ -1,0 +1,21 @@
+# Global code owners for the AI Security Monitoring App
+# This file defines who automatically gets assigned as reviewers for PRs
+
+# Default owners for all files
+* @aurelianware
+
+# Security-critical files require extra scrutiny
+/.github/workflows/ @aurelianware
+/src/lib/auth.ts @aurelianware
+/prisma/schema.prisma @aurelianware
+/.env.example @aurelianware
+
+# Documentation files
+*.md @aurelianware
+/docs/ @aurelianware
+
+# Configuration files
+package.json @aurelianware
+tsconfig.json @aurelianware
+vite.config.ts @aurelianware
+tailwind.config.js @aurelianware
