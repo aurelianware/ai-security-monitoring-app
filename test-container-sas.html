@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Container SAS Token Test</title>
+</head>
+<body>
+    <h1>Container-Level SAS Token Test</h1>
+    
+    <div>
+        <label>Paste your container SAS token here:</label><br>
+        <input type="text" id="sasToken" placeholder="Paste container SAS token here..." style="width: 80%; padding: 5px;">
+        <button onclick="testConnection()">Test Connection</button>
+    </div>
+    
+    <div id="results" style="margin-top: 20px; font-family: monospace;"></div>
+    
+    <script>
+        function log(message) {
+            console.log(message);
+            document.getElementById('results').innerHTML += '<div>' + message + '</div>';
+        }
+        
+        function testConnection() {
+            const sasToken = document.getElementById('sasToken').value.trim();
+            
+            if (!sasToken) {
+                alert('Please paste your SAS token first');
+                return;
+            }
+            
+            document.getElementById('results').innerHTML = '';
+            
+            const accountName = "aurelianwarestorage";
+            const containerName = "security-events";
+            const baseUrl = `https://${accountName}.blob.core.windows.net/${containerName}`;
+            
+            // Clean the SAS token (remove leading ? if present)
+            const cleanToken = sasToken.startsWith('?') ? sasToken.substring(1) : sasToken;
+            const listUrl = `${baseUrl}?comp=list&restype=container&${cleanToken}`;
+
+            log("=== Container SAS Token Test ===");
+            log("Account: " + accountName);
+            log("Container: " + containerName);
+            log("SAS Token (first 50 chars): " + cleanToken.substring(0, 50) + "...");
+            log("List URL: " + listUrl);
+            log("");
+            log("Testing connection...");
+
+            fetch(listUrl)
+                .then(response => {
+                    log("✅ Response received!");
+                    log("Status: " + response.status + " " + response.statusText);
+                    
+                    if (response.status === 200) {
+                        log("🎉 SUCCESS: Container SAS token works!");
+                        log("📋 You can now use this token in your app:");
+                        log("   Storage Account: aurelianwarestorage");
+                        log("   Container: security-events");
+                        log("   SAS Token: " + cleanToken);
+                        return response.text();
+                    } else if (response.status === 404) {
+                        log("❌ ERROR: Container 'security-events' does not exist");
+                        log("📋 SOLUTION: Create the container in Azure Portal");
+                        throw new Error("Container not found");
+                    } else if (response.status === 403) {
+                        log("❌ ERROR: Access denied - check SAS token permissions");
+                        throw new Error("Access denied");
+                    } else {
+                        log("❌ ERROR: Unexpected status " + response.status);
+                        return response.text();
+                    }
+                })
+                .then(text => {
+                    if (text && text.includes('<?xml')) {
+                        log("📄 Container response received (XML format)");
+                        log("✅ Container access confirmed!");
+                    }
+                })
+                .catch(error => {
+                    log("❌ FETCH ERROR: " + error.message);
+                    if (error.message.includes('CORS') || error.message === 'Load failed') {
+                        log("🔧 This might still be a CORS issue with container SAS");
+                        log("🔧 Try using the main app instead of this test page");
+                    }
+                });
+        }
+    </script>
+    
+    <div style="margin-top: 30px; padding: 10px; background: #f0f0f0;">
+        <h3>Instructions:</h3>
+        <ol>
+            <li>Go to Azure Portal → aurelianwarestorage → Containers → security-events</li>
+            <li>Click "Generate SAS"</li>
+            <li>Set permissions: Read ✅ Write ✅ Delete ✅ List ✅</li>
+            <li>Set expiry date (future)</li>
+            <li>Click "Generate SAS token and URL"</li>
+            <li>Copy the SAS token (after the ?) and paste it above</li>
+        </ol>
+    </div>
+</body>
+</html>
