@@ -38,7 +38,7 @@
   "devDependencies": {
     "@capacitor/cli": "^5.4.1",
     "@capacitor/core": "^5.4.1",
-    "@electron-forge/cli": "^6.4.2",
+    "@electron-forge/cli": "^7.10.2",
     "@electron-forge/maker-deb": "^6.4.2",
     "@electron-forge/maker-rpm": "^6.4.2",
     "@electron-forge/maker-squirrel": "^6.4.2",
