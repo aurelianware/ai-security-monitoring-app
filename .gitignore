@@ -111,3 +111,6 @@ workbox-*.js
 # Debug files
 debug*.js
 debug*.json
+
+# Deployment artifacts
+*.zip
