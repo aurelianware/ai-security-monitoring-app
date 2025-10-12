@@ -26,7 +26,7 @@
     "@tensorflow/tfjs": "^4.13.0",
     "@tensorflow/tfjs-backend-webgl": "^4.13.0",
     "@tensorflow/tfjs-converter": "^4.13.0",
-    "date-fns": "^2.30.0",
+    "date-fns": "^4.1.0",
     "framer-motion": "^10.16.4",
     "idb": "^7.1.1",
     "lucide-react": "^0.287.0",
