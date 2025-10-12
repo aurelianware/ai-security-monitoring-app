@@ -1,0 +1,29 @@
+name: "AI Security Monitor CodeQL Configuration"
+
+disable-default-queries: false
+
+queries:
+  - name: security-extended
+    uses: security-extended
+  - name: security-and-quality
+    uses: security-and-quality
+
+paths-ignore:
+  - node_modules/
+  - dist/
+  - build/
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+
+paths:
+  - src/
+  - app/
+  - pages/
+  - lib/
+  - components/
+  - "*.ts"
+  - "*.tsx"
+  - "*.js"
+  - "*.jsx"
