@@ -74,8 +74,8 @@ global.indexedDB = {
   open: vi.fn(() => {
     const request = { ...mockIDBRequest }
     setTimeout(() => {
-      request.result = mockIDBDatabase
-      if (request.onsuccess) request.onsuccess(new Event('success'))
+      (request as any).result = mockIDBDatabase
+      if (request.onsuccess) (request.onsuccess as any)(new Event('success'))
     }, 0)
     return request as any
   }),
@@ -102,7 +102,7 @@ global.MediaRecorder = class MockMediaRecorder {
   state = 'inactive'
   mimeType = 'video/webm'
   
-  constructor(stream: any, options?: any) {}
+  constructor(_stream: any, _options?: any) {}
   
   start = vi.fn()
   stop = vi.fn()

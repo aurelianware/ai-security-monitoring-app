@@ -45,13 +45,22 @@ model User {
   
   // SaaS-specific fields
   tenantId      String    @default(cuid())
-  subscription  String    @default("free") // free, pro, enterprise
+  
+  // Subscription management
+  subscriptionTier     String    @default("FREE") // FREE, PRO, ENTERPRISE
+  subscriptionStatus   String    @default("active") // active, canceled, past_due
+  subscriptionCurrentPeriodEnd DateTime?
+  
+  // Stripe integration
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
-  // Device and storage limits
-  deviceLimit   Int       @default(3)
-  storageLimit  Int       @default(1000) // MB
+  // Device and storage limits based on subscription
+  deviceLimit   Int       @default(2)
+  storageLimit  Int       @default(100) // MB
   
   accounts      Account[]
   sessions      Session[]
