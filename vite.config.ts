@@ -60,5 +60,9 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['@tensorflow/tfjs', '@tensorflow/tfjs-backend-webgl']
+  },
+  define: {
+    global: 'globalThis',
+    'process.env': {}
   }
 })
