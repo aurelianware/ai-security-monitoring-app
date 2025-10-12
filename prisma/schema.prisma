@@ -1,0 +1,118 @@
+// Prisma Schema for Authentication and User Management
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// NextAuth.js required models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  
+  // SaaS-specific fields
+  tenantId      String    @default(cuid())
+  subscription  String    @default("free") // free, pro, enterprise
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Device and storage limits
+  deviceLimit   Int       @default(3)
+  storageLimit  Int       @default(1000) // MB
+  
+  accounts      Account[]
+  sessions      Session[]
+  devices       Device[]
+  securityEvents SecurityEvent[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Security app models
+model Device {
+  id           String   @id @default(cuid())
+  name         String
+  type         String   // raspberry-pi, mobile-ios, etc.
+  platform     String
+  status       String   @default("offline")
+  location     String
+  ipAddress    String?
+  macAddress   String?
+  
+  // Tenant isolation
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastSeen     DateTime @default(now())
+  
+  securityEvents SecurityEvent[]
+}
+
+model SecurityEvent {
+  id           String   @id @default(cuid())
+  type         String   // detection, motion, alert
+  confidence   Float
+  timestamp    DateTime @default(now())
+  
+  // Object detection data (JSON)
+  detections   String   // JSON array of YOLODetection
+  
+  // Media files
+  imageUrl     String?
+  videoUrl     String?
+  
+  // Device relationship
+  deviceId     String
+  device       Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  
+  // Tenant isolation
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Storage and sync
+  synced       Boolean  @default(false)
+  syncAttempts Int      @default(0)
+  
+  createdAt    DateTime @default(now())
+}
