@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Save, RotateCcw, Bell, Shield, Eye, Zap } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Monitor, Volume2, Shield, Eye, Save, RotateCcw, Zap, Bell } from 'lucide-react';
 import syncQueueService, { SyncStatus } from '../utils/syncQueue';
 
 interface Settings {

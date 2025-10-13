@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Clock, AlertTriangle, Eye, Trash2, Play, Image, X, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { useState } from 'react';
+import { format } from 'date-fns';
+import { Download, ChevronDown, ChevronUp, Calendar, Clock, Eye, AlertTriangle, Trash2, Play, Info, X, ImageIcon } from 'lucide-react';
 
 interface SecurityEvent {
   id: string;
@@ -241,7 +242,7 @@ const EventsList: React.FC<EventsListProps> = ({ events }) => {
                           onClick={() => handleMediaView(event.imageBlob!, 'image', event.id)}
                           className="flex items-center space-x-1 px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs text-white transition-colors"
                         >
-                          <Image className="h-3 w-3" />
+                          <ImageIcon className="h-3 w-3" />
                           <span>View Image</span>
                         </button>
                       )}
