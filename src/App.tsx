@@ -5,7 +5,7 @@ import DetectionOverlay from './components/DetectionOverlay';
 import EventsList from './components/EventsList';
 import SettingsPanel from './components/SettingsPanel';
 import { AuthProvider } from './components/AuthProvider';
-import { ProtectedRoute, UserProfileDropdown } from './components/Auth';
+import { ProtectedRoute } from './components/Auth';
 import syncQueueService from './utils/syncQueue';
 import localStorageService, { SecurityEvent as StoredSecurityEvent } from './utils/storage';
 
@@ -303,8 +303,10 @@ function App() {
               </div>
             )}
 
-            {/* User Authentication */}
-            <UserProfileDropdown />
+            {/* User Authentication - Simple display for now */}
+            <div className="text-white text-sm">
+              User: Demo
+            </div>
           </div>
         </div>
       </header>

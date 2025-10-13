@@ -1,13 +1,17 @@
-// Session Provider for NextAuth
-'use client'
-
-import { SessionProvider } from 'next-auth/react'
-import { ReactNode } from 'react'
+// Custom Auth Provider for Vite React App
+import { ReactNode } from 'react';
+import { useAuthProvider } from '../hooks/useAuth';
 
 interface AuthProviderProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  return <SessionProvider>{children}</SessionProvider>
-}
+  const auth = useAuthProvider();
+
+  return (
+    <auth.AuthContext.Provider value={auth}>
+      {children}
+    </auth.AuthContext.Provider>
+  );
+};
