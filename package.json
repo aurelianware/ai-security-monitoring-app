@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Home Security App with TensorFlow.js and WebRTC",
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

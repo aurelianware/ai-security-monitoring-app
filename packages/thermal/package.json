@@ -1,0 +1,24 @@
+{
+  "name": "@aurelian/thermal",
+  "version": "1.0.0",
+  "description": "Thermal image rendering with color palettes (ironbow, white-hot, black-hot, grayscale)",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "thermal",
+    "palette",
+    "ironbow",
+    "rendering",
+    "canvas"
+  ],
+  "author": "Aurelian",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.2"
+  }
+}

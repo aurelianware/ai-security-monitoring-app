@@ -1,0 +1,24 @@
+{
+  "name": "@aurelian/recorder",
+  "version": "1.0.0",
+  "description": "Chunked MediaRecorder wrapper for 2-minute video segments",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "recorder",
+    "mediarecorder",
+    "video",
+    "chunks",
+    "segments"
+  ],
+  "author": "Aurelian",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.2"
+  }
+}
