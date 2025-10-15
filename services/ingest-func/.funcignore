@@ -1,0 +1,14 @@
+.git*
+.vscode
+__azurite_db*__.json
+__blobstorage__
+__queuestorage__
+local.settings.json
+test
+tsconfig.json
+.funcignore
+*.js.map
+*.ts
+.gitignore
+node_modules
+package-lock.json

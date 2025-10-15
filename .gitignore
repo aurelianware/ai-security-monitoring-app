@@ -114,3 +114,10 @@ debug*.json
 
 # Deployment artifacts
 *.zip
+
+# Azure Functions
+services/*/local.settings.json
+services/*/__azurite_db*__.json
+services/*/__blobstorage__
+services/*/__queuestorage__
+services/*/dist/
