@@ -1,0 +1,28 @@
+{
+  "name": "@aurelianware/edi-x12",
+  "version": "1.0.0",
+  "description": "EDI X12 005010X224A2 (837D) Dental Claims Generator",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "gen:837d": "node dist/cli.js"
+  },
+  "keywords": [
+    "edi",
+    "x12",
+    "837d",
+    "dental",
+    "claims"
+  ],
+  "author": "Aurelianware",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}

@@ -1,0 +1,6 @@
+node_modules/
+dist/
+outbox/*.837d
+*.log
+.DS_Store
+coverage/

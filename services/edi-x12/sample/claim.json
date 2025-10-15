@@ -1,0 +1,82 @@
+{
+  "claimId": "CLM0001",
+  "billingProvider": {
+    "npi": "1234567890",
+    "taxId": "123456789",
+    "organizationName": "Dental Practice Inc",
+    "address": {
+      "street": "123 Main Street",
+      "city": "New York",
+      "state": "NY",
+      "zip": "10001"
+    },
+    "contactName": "Dr. John Smith",
+    "phone": "2125551234"
+  },
+  "subscriber": {
+    "memberId": "SUB123456",
+    "firstName": "Jane",
+    "lastName": "Doe",
+    "dateOfBirth": "1985-03-15",
+    "gender": "F",
+    "address": {
+      "street": "456 Oak Avenue",
+      "city": "New York",
+      "state": "NY",
+      "zip": "10002"
+    }
+  },
+  "patient": {
+    "firstName": "Jane",
+    "lastName": "Doe",
+    "dateOfBirth": "1985-03-15",
+    "gender": "F",
+    "relationshipToSubscriber": "18"
+  },
+  "claim": {
+    "claimNumber": "CLM0001",
+    "totalCharge": "350.00",
+    "placeOfService": "11",
+    "dateOfService": "2025-10-01",
+    "diagnosisCodes": ["K02.9"],
+    "serviceLines": [
+      {
+        "procedureCode": "D0120",
+        "description": "Periodic oral evaluation",
+        "charge": "75.00",
+        "units": "1",
+        "dateOfService": "2025-10-01",
+        "tooth": "",
+        "surface": ""
+      },
+      {
+        "procedureCode": "D0210",
+        "description": "Intraoral - complete series",
+        "charge": "125.00",
+        "units": "1",
+        "dateOfService": "2025-10-01",
+        "tooth": "",
+        "surface": ""
+      },
+      {
+        "procedureCode": "D2391",
+        "description": "Resin-based composite - one surface, posterior",
+        "charge": "150.00",
+        "units": "1",
+        "dateOfService": "2025-10-01",
+        "tooth": "19",
+        "surface": "O"
+      }
+    ]
+  },
+  "payer": {
+    "payerId": "12345",
+    "name": "Delta Dental",
+    "address": {
+      "street": "789 Insurance Plaza",
+      "city": "Hartford",
+      "state": "CT",
+      "zip": "06103"
+    }
+  }
+}
