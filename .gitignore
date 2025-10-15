@@ -114,3 +114,7 @@ debug*.json
 
 # Deployment artifacts
 *.zip
+
+# Bicep compiled ARM templates
+infra/bicep/**/*.json
+!infra/bicep/**/package.json
