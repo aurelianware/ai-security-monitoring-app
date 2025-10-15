@@ -1,0 +1,14 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "OPENAI_ENDPOINT": "https://your-openai-resource.openai.azure.com/",
+    "OPENAI_API_KEY": "placeholder-key-move-to-keyvault",
+    "OPENAI_DEPLOYMENT_NAME": "gpt-4",
+    "SPEECH_REGION": "eastus",
+    "SPEECH_KEY": "placeholder-key-move-to-keyvault",
+    "EMR_CONNECTION_STRING": "Server=tcp:your-server.database.windows.net,1433;Initial Catalog=emr-db;Persist Security Info=False;User ID=emr-user;Password=placeholder;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+  },
+  "ConnectionStrings": {}
+}

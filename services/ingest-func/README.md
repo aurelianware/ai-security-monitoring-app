@@ -78,6 +78,12 @@ npm start
 
 ### Configuration
 
+Copy the example configuration file:
+
+```bash
+cp local.settings.example.json local.settings.json
+```
+
 Edit `local.settings.json`:
 
 ```json
