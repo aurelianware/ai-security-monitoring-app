@@ -1,23 +1,33 @@
 {
-  "name": "web-security-app",
+  "name": "ai-security-monitoring-app",
   "version": "1.0.0",
   "description": "Home Security App with TensorFlow.js and WebRTC",
   "type": "module",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npm run build:root && npm run build --workspaces --if-present || true",
+    "test": "npm run test:root && npm run test --workspaces --if-present || true",
+    "lint": "npm run lint:root && npm run lint --workspaces --if-present || true",
+    "type-check": "npm run type-check:root && npm run type-check --workspaces --if-present || true",
     "preview": "vite preview",
     "dev:https": "vite --host --https",
     "serve:iphone": "vite --host --https --port 3000",
     "mobile:build": "cap build",
     "mobile:ios": "cap open ios",
     "mobile:android": "cap open android",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:security": "eslint . --ext ts,tsx --config .eslintrc.json",
     "security:audit": "npm audit --audit-level high",
     "security:check": "npm run lint:security && npm run security:audit",
-    "type-check": "tsc --noEmit",
-    "test": "vitest"
+    "build:root": "tsc && vite build",
+    "test:root": "vitest run",
+    "lint:root": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "type-check:root": "tsc --noEmit"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.0",
