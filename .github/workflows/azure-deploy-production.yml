@@ -61,6 +61,7 @@ jobs:
           !deploy/
           !docs/
           !*.md
+          !node_modules/.cache/
 
   deploy:
     permissions:
@@ -103,12 +104,9 @@ jobs:
           --settings \
             NODE_ENV="production" \
             WEBSITE_NODE_DEFAULT_VERSION="20-lts" \
-            SCM_DO_BUILD_DURING_DEPLOYMENT="true" \
-            ENABLE_ORYX_BUILD="true" \
+            SCM_DO_BUILD_DURING_DEPLOYMENT="false" \
+            ENABLE_ORYX_BUILD="false" \
             WEBSITE_RUN_FROM_PACKAGE="0"
-            
-        az webapp config set --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group rg-websecurityapp-prod \
-          --startup-file "bash startup.sh"
 
     - name: 'Health Check'
       run: |
