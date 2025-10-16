@@ -1,37 +1,19 @@
-# Use official Node.js runtime as base image
-FROM node:20-slim
-
-# Install curl for health checks
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-
-# Set working directory
-WORKDIR /usr/src/app
-
-# Copy package files first for better Docker layer caching
+# Multi-stage build for production optimization
+FROM node:20-bullseye AS build
+WORKDIR /app
 COPY package*.json ./
-
-# Install dependencies (including devDependencies for build)
 RUN npm ci
-
-# Copy application code
 COPY . .
-
-# Build the application
 RUN npm run build
 
-# Remove devDependencies to keep image smaller
-RUN npm ci --only=production && npm cache clean --force
-
-# Expose port
-EXPOSE 8080
-
-# Set environment variables
+FROM node:20-alpine AS runtime
+WORKDIR /app
 ENV NODE_ENV=production
-ENV PORT=8080
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8080/health || exit 1
-
-# Start the application
+COPY package*.json ./
+RUN npm ci --omit=dev
+COPY --from=build /app/dist ./dist
+COPY server.js ./server.js
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:8080/healthz || exit 1
 CMD ["node", "server.js"]
