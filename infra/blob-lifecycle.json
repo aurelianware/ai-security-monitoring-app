@@ -1,0 +1,56 @@
+{
+  "rules": [
+    {
+      "enabled": true,
+      "name": "DeleteOldBlobs",
+      "type": "Lifecycle",
+      "definition": {
+        "actions": {
+          "baseBlob": {
+            "delete": {
+              "daysAfterModificationGreaterThan": 30
+            }
+          },
+          "snapshot": {
+            "delete": {
+              "daysAfterCreationGreaterThan": 30
+            }
+          }
+        },
+        "filters": {
+          "blobTypes": [
+            "blockBlob"
+          ],
+          "prefixMatch": [
+            "events/",
+            "media/",
+            "recordings/"
+          ]
+        }
+      }
+    },
+    {
+      "enabled": true,
+      "name": "TierOldBlobsToCool",
+      "type": "Lifecycle",
+      "definition": {
+        "actions": {
+          "baseBlob": {
+            "tierToCool": {
+              "daysAfterModificationGreaterThan": 7
+            }
+          }
+        },
+        "filters": {
+          "blobTypes": [
+            "blockBlob"
+          ],
+          "prefixMatch": [
+            "events/",
+            "media/"
+          ]
+        }
+      }
+    }
+  ]
+}

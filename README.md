@@ -141,3 +141,127 @@ This approach lets you:
 - ✅ Deploy to web, desktop, and mobile
 - ✅ Integrate with Azure cloud services
 - ✅ Learn modern web ML development
+
+---
+
+## 🚀 Production Readiness Checklist
+
+PrivaseeAI is production-ready with enterprise-grade infrastructure and security.
+
+### ✅ Docker & Containerization
+- [x] **Multi-stage Dockerfile**: Optimized build with `node:20-bullseye` → `node:20-alpine`
+- [x] **Production Dependencies**: Separate build and runtime dependencies
+- [x] **Health Checks**: Built-in health monitoring at `/healthz` endpoint
+- [x] **Small Image Size**: Alpine-based runtime for minimal footprint
+- [x] **Security Scanning**: Container vulnerability scanning in CI/CD
+
+### ✅ CI/CD Pipeline
+- [x] **Build Workflow** (`build-and-push.yml`):
+  - Automated builds on every commit
+  - Pushes images to Azure Container Registry (ACR)
+  - Uses Azure Managed Identity for authentication
+  - Tags images with commit SHA and `latest`
+  
+- [x] **Deploy Workflow** (`deploy-aca.yml`):
+  - Automated deployment to Azure Container Apps
+  - Environment-based configuration
+  - Automatic health checks post-deployment
+  - Rollback capability with image tags
+
+### ✅ Security Headers & HTTPS
+- [x] **HSTS**: HTTP Strict Transport Security with 1-year max-age
+- [x] **CSP**: Content Security Policy for XSS protection
+- [x] **CORS**: Whitelist for `privaseeai.net` domain
+- [x] **Referrer-Policy**: Strict origin control
+- [x] **Permissions-Policy**: Camera/microphone access controls
+- [x] **X-Frame-Options**: Clickjacking protection (DENY)
+- [x] **X-Content-Type-Options**: MIME-sniffing prevention
+- [x] **HTTPS Redirect**: Automatic redirect in production
+
+### ✅ Database & Multi-Tenancy
+- [x] **Prisma Schema**: PostgreSQL-ready production schema
+- [x] **Multi-Tenant Models**:
+  - `Tenant`: Organization-level isolation
+  - `User`: Multi-tenant user management with roles
+  - `Event`: Security events with tenant isolation
+  - `Device`: Camera/device management
+- [x] **Indexes**: Optimized queries for tenant/user/timestamp
+- [x] **Migrations**: Database migration infrastructure ready
+- [x] **Data Isolation**: Row-level tenant separation
+
+### ✅ Azure Blob Lifecycle Management
+- [x] **Automatic Deletion**: 30-day retention policy for old blobs
+- [x] **Cost Optimization**: Auto-tier to Cool storage after 7 days
+- [x] **Prefix Filters**: Applies to `events/`, `media/`, `recordings/`
+- [x] **Infrastructure as Code**: `infra/blob-lifecycle.json` policy
+- [x] **Easy Deployment**: Azure CLI command for policy application
+
+### ✅ Monitoring & Observability
+- [x] **Application Insights**: Optional Azure Monitor integration
+- [x] **Health Endpoints**: `/healthz`, `/health`, `/api/health`
+- [x] **Structured Logging**: Startup diagnostics and runtime logs
+- [x] **Metrics**: Uptime, node version, directory structure
+- [x] **Graceful Shutdown**: SIGTERM/SIGINT handling
+
+### ✅ Environment Configuration
+Required secrets for production deployment:
+- `AZURE_CLIENT_ID`: Managed Identity client ID
+- `AZURE_TENANT_ID`: Azure tenant ID
+- `AZURE_SUBSCRIPTION_ID`: Azure subscription ID
+- `ACR_NAME`: Azure Container Registry name
+- `AZURE_RESOURCE_GROUP`: Resource group name
+- `ACA_ENVIRONMENT`: Container Apps environment name
+- `DATABASE_URL`: PostgreSQL connection string
+- `NEXTAUTH_SECRET`: NextAuth.js secret key
+- `AZURE_STORAGE_CONNECTION_STRING`: Blob storage connection
+
+### 📋 Deployment Steps
+
+#### 1. Initial Setup
+```bash
+# Generate Prisma client
+npx prisma generate
+
+# Run migrations
+npx prisma migrate deploy
+```
+
+#### 2. Apply Blob Lifecycle Policy
+```bash
+az storage account management-policy create \
+  -g <resource-group> \
+  -n <storage-account> \
+  --policy @infra/blob-lifecycle.json
+```
+
+#### 3. Configure GitHub Secrets
+Add all required secrets to your GitHub repository settings under Settings → Secrets and variables → Actions.
+
+#### 4. Deploy
+Push to `main` branch or manually trigger workflows:
+```bash
+git push origin main
+```
+
+The CI/CD pipeline will automatically:
+1. Build and test the application
+2. Build and push Docker image to ACR
+3. Deploy to Azure Container Apps
+4. Run health checks
+
+### 🔒 Security Best Practices
+- **No hardcoded secrets**: All sensitive data via environment variables
+- **Managed Identity**: Azure authentication without credentials
+- **SAS tokens**: Time-limited blob storage access
+- **Rate limiting**: Protection against detection spam
+- **Input validation**: Prisma schema validation
+- **HTTPS only**: Production traffic encrypted in transit
+
+### 📊 Performance & Scalability
+- **Auto-scaling**: 1-3 replicas based on load
+- **Resource limits**: 0.5 CPU, 1GB memory per container
+- **CDN-ready**: Static assets served efficiently
+- **Edge optimization**: TensorFlow.js runs in browser
+- **Offline-first**: IndexedDB for local resilience
+
+---

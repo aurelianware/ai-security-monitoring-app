@@ -31,10 +31,86 @@ try {
   console.log('Error checking node_modules:', error.message);
 }
 
+// Application Insights integration (optional)
+if (process.env.APPINSIGHTS_INSTRUMENTATIONKEY) {
+  const appInsights = require('applicationinsights');
+  appInsights.setup(process.env.APPINSIGHTS_INSTRUMENTATIONKEY).start();
+  console.log('Application Insights enabled');
+}
+
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const app = express();
+
+// HTTPS redirect for production
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (req.header('x-forwarded-proto') !== 'https') {
+      res.redirect(`https://${req.header('host')}${req.url}`);
+    } else {
+      next();
+    }
+  });
+}
+
+// Security headers middleware
+app.use((req, res, next) => {
+  // HSTS - Force HTTPS for 1 year
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  
+  // Content Security Policy
+  res.setHeader('Content-Security-Policy', 
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://storage.googleapis.com; " +
+    "style-src 'self' 'unsafe-inline'; " +
+    "img-src 'self' data: blob: https:; " +
+    "font-src 'self' data:; " +
+    "connect-src 'self' https://*.blob.core.windows.net https://*.googleapis.com; " +
+    "media-src 'self' blob:; " +
+    "worker-src 'self' blob:; " +
+    "frame-ancestors 'none';"
+  );
+  
+  // Referrer Policy
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // Permissions Policy
+  res.setHeader('Permissions-Policy', 
+    'camera=(self), microphone=(self), geolocation=(self), payment=(), usb=()'
+  );
+  
+  // X-Frame-Options
+  res.setHeader('X-Frame-Options', 'DENY');
+  
+  // X-Content-Type-Options
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  
+  next();
+});
+
+// CORS whitelist for privaseeai.net
+const allowedOrigins = [
+  'https://privaseeai.net',
+  'https://www.privaseeai.net',
+  'https://*.privaseeai.net'
+];
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && (allowedOrigins.includes(origin) || origin.endsWith('.privaseeai.net'))) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
 
 // Check if dist directory exists
 const distPath = path.join(__dirname, 'dist');
@@ -51,13 +127,32 @@ if (fs.existsSync(distPath)) {
   app.use(express.static(__dirname));
 }
 
-// Health check endpoint
+// Health check endpoints
+app.get('/healthz', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    distExists: fs.existsSync(distPath),
+    currentDir: __dirname,
+    nodeVersion: process.version,
+    uptime: process.uptime()
+  });
+});
+
+// Legacy health endpoint for backward compatibility
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
     distExists: fs.existsSync(distPath),
     currentDir: __dirname
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString()
   });
 });
 

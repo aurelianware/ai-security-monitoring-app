@@ -1,11 +1,28 @@
-// Prisma Schema for Authentication and User Management
+// Prisma Schema for Production Multi-Tenant Security Application
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Multi-tenant organization model
+model Tenant {
+  id            String   @id @default(cuid())
+  name          String
+  slug          String   @unique
+  
+  // Subscription
+  subscriptionTier     String   @default("FREE") // FREE, PRO, ENTERPRISE
+  subscriptionStatus   String   @default("active")
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  users         User[]
+  events        Event[]
 }
 
 // NextAuth.js required models
@@ -43,8 +60,10 @@ model User {
   emailVerified DateTime?
   image         String?
   
-  // SaaS-specific fields
-  tenantId      String    @default(cuid())
+  // Multi-tenant isolation
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  role          String    @default("member") // owner, admin, member
   
   // Subscription management
   subscriptionTier     String    @default("FREE") // FREE, PRO, ENTERPRISE
@@ -65,7 +84,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   devices       Device[]
-  securityEvents SecurityEvent[]
+  events        Event[]
 }
 
 model VerificationToken {
@@ -95,33 +114,49 @@ model Device {
   updatedAt    DateTime @updatedAt
   lastSeen     DateTime @default(now())
   
-  securityEvents SecurityEvent[]
+  events       Event[]
 }
 
-model SecurityEvent {
+// Security events with multi-tenant support
+model Event {
   id           String   @id @default(cuid())
-  type         String   // detection, motion, alert
-  confidence   Float
+  kind         String   // detection, motion, alert, recording
+  eventType    String?  // person, vehicle, animal, package
+  confidence   Float?
   timestamp    DateTime @default(now())
   
   // Object detection data (JSON)
-  detections   String   // JSON array of YOLODetection
+  detections   String?  // JSON array of detections
+  metadata     String?  // Additional JSON metadata
   
-  // Media files
-  imageUrl     String?
+  // Media files - URLs to Azure Blob Storage
+  mediaUrl     String?
+  thumbnailUrl String?
   videoUrl     String?
   
   // Device relationship
-  deviceId     String
-  device       Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  deviceId     String?
+  device       Device?  @relation(fields: [deviceId], references: [id], onDelete: SetNull)
   
-  // Tenant isolation
+  // Multi-tenant isolation
+  tenantId     String
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  
   userId       String
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   // Storage and sync
   synced       Boolean  @default(false)
   syncAttempts Int      @default(0)
+  lastSyncAt   DateTime?
+  
+  // Priority for sync queue
+  priority     String   @default("medium") // high, medium, low
   
   createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@index([tenantId, timestamp])
+  @@index([userId, timestamp])
+  @@index([synced, priority])
 }
