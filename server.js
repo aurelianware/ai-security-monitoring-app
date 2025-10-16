@@ -136,6 +136,21 @@ app.get('/api/debug/env', async (req, res) => {
   }
 });
 
+// Debug endpoint to check authentication flow
+app.get('/api/debug/auth', (req, res) => {
+  res.json({
+    timestamp: new Date().toISOString(),
+    message: 'Auth debug endpoint working',
+    userAgent: req.get('User-Agent'),
+    headers: {
+      authorization: req.get('Authorization') ? 'Bearer [PRESENT]' : 'MISSING',
+      cookie: req.get('Cookie') ? '[PRESENT]' : 'MISSING'
+    },
+    url: req.url,
+    method: req.method
+  });
+});
+
 // Serve static files (React build)
 app.use(express.static(path.join(__dirname, 'dist')));
 

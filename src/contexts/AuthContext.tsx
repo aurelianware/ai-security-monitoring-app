@@ -37,15 +37,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Check for existing session on app load
   useEffect(() => {
     const checkAuth = async () => {
+      console.log('🔍 AuthContext: Starting auth check');
       try {
         // Check for token in URL first (from OAuth callback)
         const urlParams = new URLSearchParams(window.location.search);
         const urlToken = urlParams.get('token');
+        console.log('🔍 AuthContext: URL token present:', !!urlToken);
         
         if (urlToken) {
+          console.log('🔍 AuthContext: Processing URL token');
           // Parse token from URL
           try {
             const userData = JSON.parse(atob(urlToken));
+            console.log('🔍 AuthContext: Parsed user data:', userData);
             
             // Map GitHub user data to our User interface
             const mappedUser: User = {
@@ -56,6 +60,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               provider: userData.provider || 'github'
             };
             
+            console.log('✅ AuthContext: Setting user:', mappedUser);
             setUser(mappedUser);
             localStorage.setItem('auth_token', urlToken);
             
@@ -64,15 +69,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setIsLoading(false);
             return;
           } catch (error) {
-            console.error('Invalid token from URL:', error);
+            console.error('❌ AuthContext: Invalid token from URL:', error);
           }
         }
         
         // Check for existing token in localStorage
         const token = localStorage.getItem('auth_token');
+        console.log('🔍 AuthContext: Stored token present:', !!token);
         if (token) {
           try {
             const userData = JSON.parse(atob(token));
+            console.log('🔍 AuthContext: Stored user data:', userData);
             
             // Check if token is not expired
             if (userData.expires && userData.expires > Date.now()) {
@@ -83,20 +90,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 image: userData.image,
                 provider: userData.provider || 'github'
               };
+              console.log('✅ AuthContext: Restoring user from storage:', mappedUser);
               setUser(mappedUser);
             } else {
               // Token expired
+              console.log('⏰ AuthContext: Token expired');
               localStorage.removeItem('auth_token');
             }
           } catch (error) {
-            console.error('Invalid stored token:', error);
+            console.error('❌ AuthContext: Invalid stored token:', error);
             localStorage.removeItem('auth_token');
           }
         }
       } catch (error) {
-        console.error('Auth check failed:', error);
+        console.error('❌ AuthContext: Auth check failed:', error);
         localStorage.removeItem('auth_token');
       } finally {
+        console.log('🔍 AuthContext: Auth check complete, isLoading=false');
         setIsLoading(false);
       }
     };
