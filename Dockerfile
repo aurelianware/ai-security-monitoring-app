@@ -1,14 +1,17 @@
 # Use official Node.js runtime as base image
 FROM node:20-slim
 
+# Install curl for health checks
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 # Set working directory
 WORKDIR /usr/src/app
 
-# Copy package files
+# Copy package files first for better Docker layer caching
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (including devDependencies for build)
+RUN npm ci
 
 # Copy application code
 COPY . .
@@ -16,8 +19,8 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Create a simple server to serve the static files
-COPY server.js ./
+# Remove devDependencies to keep image smaller
+RUN npm ci --only=production && npm cache clean --force
 
 # Expose port
 EXPOSE 8080

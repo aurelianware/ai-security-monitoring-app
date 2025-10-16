@@ -1,0 +1,82 @@
+name: Test Container Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ test-container ]
+
+env:
+  AZURE_CONTAINER_REGISTRY: websecurityappacr
+  IMAGE_NAME: websecurityapp-test
+  RESOURCE_GROUP: rg-websecurityapp-prod
+
+permissions:
+  contents: read
+
+jobs:
+  test-container:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies and test build
+      run: |
+        npm ci
+        npm run build
+        echo "Build successful!"
+
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Build and test container locally
+      run: |
+        # Build the Docker image
+        docker build -t test-image .
+        
+        # Test the container locally
+        echo "Testing container..."
+        docker run -d --name test-container -p 8080:8080 test-image
+        sleep 10
+        
+        # Test health endpoint
+        if curl -f http://localhost:8080/health; then
+          echo "✅ Container health check passed!"
+        else
+          echo "❌ Container health check failed!"
+          docker logs test-container
+          exit 1
+        fi
+        
+        # Cleanup
+        docker stop test-container
+        docker rm test-container
+
+    - name: Push to Azure Container Registry
+      run: |
+        # Get ACR credentials
+        ACR_LOGIN_SERVER=$(az acr show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --resource-group ${{ env.RESOURCE_GROUP }} --query loginServer --output tsv)
+        ACR_USERNAME=$(az acr credential show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --query username --output tsv)
+        ACR_PASSWORD=$(az acr credential show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --query passwords[0].value --output tsv)
+        
+        # Login to ACR
+        echo $ACR_PASSWORD | docker login $ACR_LOGIN_SERVER --username $ACR_USERNAME --password-stdin
+        
+        # Tag and push
+        docker tag test-image $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        docker tag test-image $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:latest
+        
+        docker push $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        docker push $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:latest
+        
+        echo "✅ Container pushed to ACR successfully!"
+        echo "Image: $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:latest"
