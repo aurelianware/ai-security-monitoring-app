@@ -107,6 +107,7 @@ workbox-*.js
 # Azure and cloud config (if containing sensitive data)
 # Uncomment if your azure config contains secrets
 # azure-config.json
+.azure-values-local.txt
 
 # Debug files
 debug*.js
