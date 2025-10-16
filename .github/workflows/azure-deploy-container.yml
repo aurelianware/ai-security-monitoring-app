@@ -52,28 +52,44 @@ jobs:
           echo "Azure Container Registry already exists"
         fi
 
-    - name: Login to Azure Container Registry
+    - name: Get ACR credentials and build/push image
       run: |
-        az acr login --name ${{ env.AZURE_CONTAINER_REGISTRY }}
-
-    - name: Build and push Docker image
-      run: |
-        # Build the Docker image
-        docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} .
-        docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:latest .
+        # Get ACR login server and credentials
+        ACR_LOGIN_SERVER=$(az acr show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --resource-group ${{ env.RESOURCE_GROUP }} --query loginServer --output tsv)
+        echo "ACR Login Server: $ACR_LOGIN_SERVER"
+        
+        # Get ACR admin credentials
+        ACR_USERNAME=$(az acr credential show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --query username --output tsv)
+        ACR_PASSWORD=$(az acr credential show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --query passwords[0].value --output tsv)
+        
+        # Login to Docker registry
+        echo $ACR_PASSWORD | docker login $ACR_LOGIN_SERVER --username $ACR_USERNAME --password-stdin
+        
+        # Build and tag the Docker image
+        docker build -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+        docker build -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:latest .
         
         # Push the images
-        docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
-        docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+        docker push $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        docker push $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:latest
+        
+        # Store image name for next step
+        echo "FULL_IMAGE_NAME=$ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }}" >> $GITHUB_ENV
 
     - name: Configure Web App for Container
       run: |
-        # Update the web app to use container deployment
+        # Get ACR credentials for the web app
+        ACR_USERNAME=$(az acr credential show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --query username --output tsv)
+        ACR_PASSWORD=$(az acr credential show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --query passwords[0].value --output tsv)
+        
+        # Configure the web app to use our container
         az webapp config container set \
           --name ${{ env.AZURE_WEBAPP_NAME }} \
           --resource-group ${{ env.RESOURCE_GROUP }} \
-          --docker-custom-image-name ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-          --docker-registry-server-url https://${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io
+          --docker-custom-image-name ${{ env.FULL_IMAGE_NAME }} \
+          --docker-registry-server-url https://${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io \
+          --docker-registry-server-user $ACR_USERNAME \
+          --docker-registry-server-password $ACR_PASSWORD
 
     - name: Configure App Settings
       run: |
