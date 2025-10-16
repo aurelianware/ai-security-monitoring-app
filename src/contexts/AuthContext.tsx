@@ -105,6 +105,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const signIn = (provider: 'github' | 'google') => {
+    console.log(`🚀 signIn called with provider: ${provider}`);
+    console.log(`🌐 Redirecting to: /auth/${provider}`);
     // Redirect to OAuth provider
     window.location.href = `/auth/${provider}`;
   };
