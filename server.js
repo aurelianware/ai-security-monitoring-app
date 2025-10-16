@@ -50,14 +50,176 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Simple session endpoint for NextAuth.js compatibility
+// Authentication endpoints
+app.get('/api/auth/me', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  console.log('Auth check for token:', token ? 'present' : 'missing');
+  
+  // For now, return null (not authenticated)
+  // TODO: Implement proper JWT token verification
+  res.json(null);
+});
+
+app.post('/api/auth/signout', (req, res) => {
+  console.log('User signing out');
+  res.json({ success: true });
+});
+
+// OAuth provider signin redirects
+app.get('/api/auth/signin/github', (req, res) => {
+  const clientId = process.env.GH_CLIENT_ID;
+  const redirectUri = `${process.env.NEXTAUTH_URL}/api/auth/callback/github`;
+  
+  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user:email`;
+  
+  console.log('Redirecting to GitHub OAuth:', githubAuthUrl);
+  res.redirect(githubAuthUrl);
+});
+
+app.get('/api/auth/signin/google', (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const redirectUri = `${process.env.NEXTAUTH_URL}/api/auth/callback/google`;
+  
+  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid email profile`;
+  
+  console.log('Redirecting to Google OAuth:', googleAuthUrl);
+  res.redirect(googleAuthUrl);
+});
+
+// OAuth callbacks
+app.get('/api/auth/callback/github', async (req, res) => {
+  const { code } = req.query;
+  
+  if (!code) {
+    return res.redirect('/?error=oauth_cancelled');
+  }
+
+  try {
+    // Exchange code for access token
+    const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: process.env.GH_CLIENT_ID,
+        client_secret: process.env.GH_CLIENT_SECRET,
+        code: code,
+      }),
+    });
+
+    const tokenData = await tokenResponse.json();
+    
+    if (tokenData.error) {
+      console.error('GitHub OAuth error:', tokenData);
+      return res.redirect('/?error=oauth_failed');
+    }
+
+    // Get user info
+    const userResponse = await fetch('https://api.github.com/user', {
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'User-Agent': 'PrivaSee-AI-Security-Monitor',
+      },
+    });
+
+    const userData = await userResponse.json();
+
+    // Get user email
+    const emailResponse = await fetch('https://api.github.com/user/emails', {
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+        'User-Agent': 'PrivaSee-AI-Security-Monitor',
+      },
+    });
+
+    const emailData = await emailResponse.json();
+    const primaryEmail = emailData.find(email => email.primary)?.email || userData.email;
+
+    // Create session token (simple implementation)
+    const sessionToken = Buffer.from(JSON.stringify({
+      id: userData.id.toString(),
+      email: primaryEmail,
+      name: userData.name || userData.login,
+      image: userData.avatar_url,
+      provider: 'github',
+      timestamp: Date.now()
+    })).toString('base64');
+
+    // Redirect with token
+    res.redirect(`/?token=${sessionToken}`);
+    
+  } catch (error) {
+    console.error('GitHub OAuth callback error:', error);
+    res.redirect('/?error=oauth_failed');
+  }
+});
+
+app.get('/api/auth/callback/google', async (req, res) => {
+  const { code } = req.query;
+  
+  if (!code) {
+    return res.redirect('/?error=oauth_cancelled');
+  }
+
+  try {
+    // Exchange code for access token
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        client_id: process.env.GOOGLE_CLIENT_ID,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        code: code,
+        grant_type: 'authorization_code',
+        redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/google`,
+      }),
+    });
+
+    const tokenData = await tokenResponse.json();
+    
+    if (tokenData.error) {
+      console.error('Google OAuth error:', tokenData);
+      return res.redirect('/?error=oauth_failed');
+    }
+
+    // Get user info
+    const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: {
+        'Authorization': `Bearer ${tokenData.access_token}`,
+      },
+    });
+
+    const userData = await userResponse.json();
+
+    // Create session token (simple implementation)
+    const sessionToken = Buffer.from(JSON.stringify({
+      id: userData.id,
+      email: userData.email,
+      name: userData.name,
+      image: userData.picture,
+      provider: 'google',
+      timestamp: Date.now()
+    })).toString('base64');
+
+    // Redirect with token
+    res.redirect(`/?token=${sessionToken}`);
+    
+  } catch (error) {
+    console.error('Google OAuth callback error:', error);
+    res.redirect('/?error=oauth_failed');
+  }
+});
+
+// Legacy NextAuth.js compatibility endpoints (for gradual migration)
 app.get('/api/auth/session', (req, res) => {
-  console.log('Session endpoint called');
-  // For now, return a simple response to avoid the JSON parsing error
+  console.log('Legacy session endpoint called');
   res.json({ user: null, expires: null });
 });
 
-// Simple providers endpoint for NextAuth.js compatibility  
 app.get('/api/auth/providers', (req, res) => {
   console.log('Providers endpoint called');
   res.json({
@@ -78,7 +240,6 @@ app.get('/api/auth/providers', (req, res) => {
   });
 });
 
-// Simple CSRF endpoint for NextAuth.js compatibility
 app.get('/api/auth/csrf', (req, res) => {
   console.log('CSRF endpoint called');
   res.json({ csrfToken: 'mock-csrf-token' });

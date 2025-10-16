@@ -1,38 +1,27 @@
-// Authentication Components
-import { signIn, signOut, useSession } from 'next-auth/react'
+// Custom Authentication Components for React/Vite
 import { useState } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 
 interface AuthButtonProps {
   className?: string
 }
 
 export const AuthButton = ({ className = '' }: AuthButtonProps) => {
-  const { data: session, status } = useSession()
-  const [isLoading, setIsLoading] = useState(false)
-
-  const handleSignIn = async (provider: string) => {
-    setIsLoading(true)
-    try {
-      await signIn(provider, { callbackUrl: '/' })
-    } catch (error) {
-      console.error('Sign in error:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const { user, isLoading, signIn, signOut, isAuthenticated } = useAuth()
+  const [isSigningOut, setIsSigningOut] = useState(false)
 
   const handleSignOut = async () => {
-    setIsLoading(true)
+    setIsSigningOut(true)
     try {
-      await signOut({ callbackUrl: '/' })
+      await signOut()
     } catch (error) {
       console.error('Sign out error:', error)
     } finally {
-      setIsLoading(false)
+      setIsSigningOut(false)
     }
   }
 
-  if (status === 'loading') {
+  if (isLoading) {
     return (
       <div className={`animate-pulse ${className}`}>
         <div className="h-10 bg-gray-200 rounded-md w-24"></div>
@@ -40,32 +29,32 @@ export const AuthButton = ({ className = '' }: AuthButtonProps) => {
     )
   }
 
-  if (session) {
+  if (isAuthenticated && user) {
     return (
       <div className={`flex items-center space-x-4 ${className}`}>
         <div className="flex items-center space-x-2">
-          {session.user.image && (
+          {user.image && (
             <img
-              src={session.user.image}
-              alt={session.user.name || 'User'}
+              src={user.image}
+              alt={user.name || 'User'}
               className="w-8 h-8 rounded-full"
             />
           )}
           <div className="hidden md:block">
             <p className="text-sm font-medium text-gray-900">
-              {session.user.name}
+              {user.name}
             </p>
             <p className="text-xs text-gray-500">
-              {session.user.email}
+              {user.email}
             </p>
           </div>
         </div>
         <button
           onClick={handleSignOut}
-          disabled={isLoading}
+          disabled={isSigningOut}
           className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 disabled:opacity-50"
         >
-          {isLoading ? 'Signing out...' : 'Sign out'}
+          {isSigningOut ? 'Signing out...' : 'Sign out'}
         </button>
       </div>
     )
@@ -74,7 +63,7 @@ export const AuthButton = ({ className = '' }: AuthButtonProps) => {
   return (
     <div className={`space-x-2 ${className}`}>
       <button
-        onClick={() => handleSignIn('google')}
+        onClick={() => signIn('google')}
         disabled={isLoading}
         className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
       >
@@ -96,17 +85,17 @@ export const AuthButton = ({ className = '' }: AuthButtonProps) => {
             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
           />
         </svg>
-        {isLoading ? 'Signing in...' : 'Sign in with Google'}
+        {isLoading ? 'Loading...' : 'Sign in with Google'}
       </button>
       <button
-        onClick={() => handleSignIn('github')}
+        onClick={() => signIn('github')}
         disabled={isLoading}
         className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
       >
         <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
           <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
         </svg>
-        {isLoading ? 'Signing in...' : 'Sign in with GitHub'}
+        {isLoading ? 'Loading...' : 'Sign in with GitHub'}
       </button>
     </div>
   )
@@ -114,10 +103,15 @@ export const AuthButton = ({ className = '' }: AuthButtonProps) => {
 
 // User Profile Dropdown Component
 export const UserProfileDropdown = () => {
-  const { data: session } = useSession()
+  const { user, signOut } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
 
-  if (!session) return null
+  if (!user) return null
+
+  const handleSignOut = async () => {
+    setIsOpen(false)
+    await signOut()
+  }
 
   return (
     <div className="relative">
@@ -125,16 +119,16 @@ export const UserProfileDropdown = () => {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center space-x-2 text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
       >
-        {session.user.image ? (
+        {user.image ? (
           <img
-            src={session.user.image}
-            alt={session.user.name || 'User'}
+            src={user.image}
+            alt={user.name || 'User'}
             className="w-8 h-8 rounded-full"
           />
         ) : (
           <div className="w-8 h-8 rounded-full bg-gray-400 flex items-center justify-center">
             <span className="text-white text-sm font-medium">
-              {session.user.name?.[0] || session.user.email[0].toUpperCase()}
+              {user.name?.[0] || user.email[0].toUpperCase()}
             </span>
           </div>
         )}
@@ -144,10 +138,13 @@ export const UserProfileDropdown = () => {
         <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
           <div className="px-4 py-2 border-b">
             <p className="text-sm font-medium text-gray-900">
-              {session.user.name}
+              {user.name}
             </p>
             <p className="text-xs text-gray-500">
-              {session.user.email}
+              {user.email}
+            </p>
+            <p className="text-xs text-blue-500 capitalize">
+              via {user.provider}
             </p>
           </div>
           <a
@@ -163,7 +160,7 @@ export const UserProfileDropdown = () => {
             Subscription
           </a>
           <button
-            onClick={() => signOut()}
+            onClick={handleSignOut}
             className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
           >
             Sign out
@@ -181,9 +178,9 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children, fallback }: ProtectedRouteProps) => {
-  const { data: session, status } = useSession()
+  const { isLoading, isAuthenticated } = useAuth()
 
-  if (status === 'loading') {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -191,7 +188,7 @@ export const ProtectedRoute = ({ children, fallback }: ProtectedRouteProps) => {
     )
   }
 
-  if (!session) {
+  if (!isAuthenticated) {
     return (
       fallback || (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
