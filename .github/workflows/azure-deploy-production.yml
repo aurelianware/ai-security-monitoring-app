@@ -68,34 +68,19 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    - name: 'Configure App Settings'
-      run: |
-        az webapp config appsettings set --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group rg-websecurityapp-prod \
-          --settings \
-            NEXTAUTH_URL="${{ secrets.NEXTAUTH_URL }}" \
-            NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}" \
-            GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
-            GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
-            GH_CLIENT_ID="${{ secrets.GH_CLIENT_ID }}" \
-            GH_CLIENT_SECRET="${{ secrets.GH_CLIENT_SECRET }}" \
-            AZURE_STORAGE_CONNECTION_STRING="${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
-            APPLICATIONINSIGHTS_CONNECTION_STRING="${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}" \
-            NODE_ENV="production" \
-            WEBSITE_NODE_DEFAULT_VERSION="20-lts" \
-            SCM_DO_BUILD_DURING_DEPLOYMENT="false"
-        
-        az webapp config set --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group rg-websecurityapp-prod \
-          --startup-file "node server.js"
-          
-        # Restart the app to clear any deployment locks
-        az webapp restart --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group rg-websecurityapp-prod
-
     - name: 'Deploy to Azure Web App'
       id: deploy-to-webapp
       uses: azure/webapps-deploy@v2
       with:
         app-name: ${{ env.AZURE_WEBAPP_NAME }}
         package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+
+    - name: 'Configure App Settings Post-Deploy'
+      run: |
+        az webapp config appsettings set --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group rg-websecurityapp-prod \
+          --settings \
+            NODE_ENV="production" \
+            WEBSITE_NODE_DEFAULT_VERSION="20-lts"
 
     - name: 'Health Check'
       run: |
