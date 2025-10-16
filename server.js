@@ -214,6 +214,19 @@ app.get('/api/auth/callback/google', async (req, res) => {
   }
 });
 
+// Debug endpoint to test authentication flow
+app.get('/api/auth/debug', (req, res) => {
+  res.json({
+    message: 'Auth debug endpoint',
+    environment: {
+      NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+      GH_CLIENT_ID: process.env.GH_CLIENT_ID ? 'configured' : 'missing',
+      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? 'configured' : 'missing'
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Legacy NextAuth.js compatibility endpoints (for gradual migration)
 app.get('/api/auth/session', (req, res) => {
   console.log('Legacy session endpoint called');
