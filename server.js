@@ -1,367 +1,95 @@
-// Enhanced container-ready Express server with comprehensive debugging
-console.l// Debug endpoint for environment variables
-app.get('/api/debug/env', async (req, res) => {
-  try {
-    const ghClientId = await getSecret('GH-CLIENT-ID');
-    const ghClientSecret = await getSecret('GH-CLIENT-SECRET');
-    
-    res.json({
-      GH_CLIENT_ID: ghClientId ? 'SET (Key Vault)' : 'MISSING',
-      GH_CLIENT_SECRET: ghClientSecret ? 'SET (Key Vault)' : 'MISSING',
-      APP_URL: process.env.APP_URL || process.env.NEXTAUTH_URL || 'MISSING',
-      NODE_ENV: process.env.NODE_ENV || 'MISSING',
-      PORT: process.env.PORT || 'MISSING',
-      UPDATED: new Date().toISOString(),
-      KEY_VAULT: 'websecurityapp-kv.vault.azure.net'
-    });
-  } catch (error) {
-    res.json({
-      GH_CLIENT_ID: process.env.GH_CLIENT_ID ? 'SET (Env)' : 'MISSING',
-      GH_CLIENT_SECRET: process.env.GH_CLIENT_SECRET ? 'SET (Env)' : 'MISSING', 
-      APP_URL: process.env.APP_URL || process.env.NEXTAUTH_URL || 'MISSING',
-      NODE_ENV: process.env.NODE_ENV || 'MISSING',
-      PORT: process.env.PORT || 'MISSING',
-      UPDATED: new Date().toISOString(),
-      KEY_VAULT_ERROR: error.message
-    });
-  }
-});
-
-// Container startup debug logging
-console.log('=== CONTAINER STARTUP DEBUG ===');
-console.log('Node.js version:', process.version);
-console.log('Platform:', process.platform);
-console.log('Working directory:', process.cwd());
-console.log('Container environment:', {
-  NODE_ENV: process.env.NODE_ENV,
-  PORT: process.env.PORT,
-  PWD: process.env.PWD,
-  HOSTNAME: process.env.HOSTNAME,
-  WEBSITE_HOSTNAME: process.env.WEBSITE_HOSTNAME
-});
-
-// List directory contents
-console.log('Directory contents:', require('fs').readdirSync('.'));
-
-// Check for node_modules and specific dependencies
-try {
-  const nodeModules = require('fs').readdirSync('./node_modules');
-  console.log('node_modules exists, total modules:', nodeModules.length);
-  console.log('First 10 modules:', nodeModules.slice(0, 10));
-  
-  // Check specifically for express
-  const expressExists = require('fs').existsSync('./node_modules/express');
-  console.log('Express module exists:', expressExists);
-  
-  if (expressExists) {
-    console.log('Express package.json:', require('./node_modules/express/package.json').version);
-  }
-} catch (error) {
-  console.log('Error checking node_modules:', error.message);
-}
-
 const express = require('express');
-const path = require('path');
-const fs = require('fs');
-const { SecretClient } = require('@azure/keyvault-secrets');
 const { DefaultAzureCredential } = require('@azure/identity');
+const { SecretClient } = require('@azure/keyvault-secrets');
+const path = require('path');
 
 const app = express();
+const port = process.env.PORT || 3000;
 
-// Key Vault setup
-const keyVaultUrl = "https://websecurityapp-kv.vault.azure.net/";
+// Azure Key Vault setup
 const credential = new DefaultAzureCredential();
-const client = new SecretClient(keyVaultUrl, credential);
+const client = new SecretClient('https://websecurityapp-kv.vault.azure.net', credential);
 
-// Cache for secrets to avoid repeated Key Vault calls
-const secretsCache = {};
-
-async function getSecret(secretName) {
-  if (secretsCache[secretName]) {
-    return secretsCache[secretName];
-  }
-  
+async function getSecret(name) {
   try {
-    const secret = await client.getSecret(secretName);
-    secretsCache[secretName] = secret.value;
-    console.log(`✅ Retrieved secret: ${secretName}`);
+    const secret = await client.getSecret(name);
     return secret.value;
   } catch (error) {
-    console.error(`❌ Failed to retrieve secret ${secretName}:`, error.message);
-    // Fallback to environment variable
-    const envName = secretName.replace(/-/g, '_');
-    return process.env[envName];
+    console.error(`Key Vault error for ${name}:`, error.message);
+    return process.env[name.replace('-', '_')];
   }
 }
 
-// Middleware for JSON parsing
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'dist')));
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    distExists: fs.existsSync(distPath),
-    currentDir: __dirname
-  });
-});
-
-// Debug endpoint for environment variables
-app.get('/api/debug/env', (req, res) => {
-  res.json({
-    GH_CLIENT_ID: process.env.GH_CLIENT_ID ? 'SET' : 'MISSING',
-    GH_CLIENT_SECRET: process.env.GH_CLIENT_SECRET ? 'SET' : 'MISSING',
-    APP_URL: process.env.APP_URL || process.env.NEXTAUTH_URL || 'MISSING',
-    NODE_ENV: process.env.NODE_ENV || 'MISSING',
-    PORT: process.env.PORT || 'MISSING',
-    UPDATED: new Date().toISOString()
-  });
-});
-
-// Authentication endpoints
-app.get('/api/auth/me', (req, res) => {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  console.log('Auth check for token:', token ? 'present' : 'missing');
-  
-  // For now, return null (not authenticated)
-  // TODO: Implement proper JWT token verification
-  res.json(null);
-});
-
-app.post('/api/auth/signout', (req, res) => {
-  console.log('User signing out');
-  res.json({ success: true });
-});
-
-// OAuth provider signin redirects
-app.get('/api/auth/signin/github', async (req, res) => {
+// GitHub OAuth
+app.get('/auth/github', async (req, res) => {
   try {
     const clientId = await getSecret('GH-CLIENT-ID');
-    const redirectUri = `${process.env.APP_URL || process.env.NEXTAUTH_URL || 'https://privaseeai.net'}/api/auth/callback/github`;
-    
-    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user:email`;
-    
-    console.log('Redirecting to GitHub OAuth:', githubAuthUrl);
-    res.redirect(githubAuthUrl);
+    const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=https://privaseeai.net/auth/github/callback&scope=read:user`;
+    res.redirect(authUrl);
   } catch (error) {
-    console.error('GitHub OAuth error:', error);
-    res.status(500).json({ error: 'Failed to initiate GitHub OAuth' });
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.get('/api/auth/signin/google', async (req, res) => {
-  try {
-    const clientId = await getSecret('GOOGLE-CLIENT-ID') || process.env.GOOGLE_CLIENT_ID;
-    const redirectUri = `${process.env.APP_URL || process.env.NEXTAUTH_URL || 'https://privaseeai.net'}/api/auth/callback/google`;
-    
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid email profile`;
-    
-    console.log('Redirecting to Google OAuth:', googleAuthUrl);
-    res.redirect(googleAuthUrl);
-  } catch (error) {
-    console.error('Google OAuth error:', error);
-    res.status(500).json({ error: 'Failed to initiate Google OAuth' });
-  }
-});
-
-// OAuth callbacks
-app.get('/api/auth/callback/github', async (req, res) => {
+app.get('/auth/github/callback', async (req, res) => {
   const { code } = req.query;
-  
-  if (!code) {
-    return res.redirect('/?error=oauth_cancelled');
-  }
+  if (!code) return res.redirect('/?error=no_code');
 
   try {
-    // Get secrets from Key Vault
     const clientId = await getSecret('GH-CLIENT-ID');
     const clientSecret = await getSecret('GH-CLIENT-SECRET');
     
-    // Exchange code for access token
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
       body: JSON.stringify({
         client_id: clientId,
         client_secret: clientSecret,
-        code: code,
-      }),
+        code: code
+      })
     });
 
     const tokenData = await tokenResponse.json();
-    
-    if (tokenData.error) {
-      console.error('GitHub OAuth error:', tokenData);
-      return res.redirect('/?error=oauth_failed');
-    }
+    if (tokenData.error) return res.redirect(`/?error=${tokenData.error}`);
 
-    // Get user info
     const userResponse = await fetch('https://api.github.com/user', {
-      headers: {
-        'Authorization': `Bearer ${tokenData.access_token}`,
-        'User-Agent': 'PrivaSee-AI-Security-Monitor',
-      },
+      headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
     });
-
     const userData = await userResponse.json();
 
-    // Get user email
-    const emailResponse = await fetch('https://api.github.com/user/emails', {
-      headers: {
-        'Authorization': `Bearer ${tokenData.access_token}`,
-        'User-Agent': 'PrivaSee-AI-Security-Monitor',
-      },
-    });
-
-    const emailData = await emailResponse.json();
-    const primaryEmail = emailData.find(email => email.primary)?.email || userData.email;
-
-    // Create session token (simple implementation)
-    const sessionToken = Buffer.from(JSON.stringify({
-      id: userData.id.toString(),
-      email: primaryEmail,
-      name: userData.name || userData.login,
-      image: userData.avatar_url,
-      provider: 'github',
-      timestamp: Date.now()
-    })).toString('base64');
-
-    // Redirect with token
-    res.redirect(`/?token=${sessionToken}`);
-    
-  } catch (error) {
-    console.error('GitHub OAuth callback error:', error);
-    res.redirect('/?error=oauth_failed');
-  }
-});
-
-app.get('/api/auth/callback/google', async (req, res) => {
-  const { code } = req.query;
-  
-  if (!code) {
-    return res.redirect('/?error=oauth_cancelled');
-  }
-
-  try {
-    // Exchange code for access token
-    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        client_id: process.env.GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        code: code,
-        grant_type: 'authorization_code',
-        redirect_uri: `${process.env.APP_URL || 'https://privaseeai.net'}/api/auth/callback/google`,
-      }),
-    });
-
-    const tokenData = await tokenResponse.json();
-    
-    if (tokenData.error) {
-      console.error('Google OAuth error:', tokenData);
-      return res.redirect('/?error=oauth_failed');
-    }
-
-    // Get user info
-    const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-      headers: {
-        'Authorization': `Bearer ${tokenData.access_token}`,
-      },
-    });
-
-    const userData = await userResponse.json();
-
-    // Create session token (simple implementation)
-    const sessionToken = Buffer.from(JSON.stringify({
+    const token = Buffer.from(JSON.stringify({
       id: userData.id,
-      email: userData.email,
+      login: userData.login,
       name: userData.name,
-      image: userData.picture,
-      provider: 'google',
-      timestamp: Date.now()
+      expires: Date.now() + 86400000
     })).toString('base64');
 
-    // Redirect with token
-    res.redirect(`/?token=${sessionToken}`);
-    
+    res.redirect(`/?token=${token}`);
   } catch (error) {
-    console.error('Google OAuth callback error:', error);
-    res.redirect('/?error=oauth_failed');
+    res.redirect(`/?error=auth_failed`);
   }
 });
 
-// Debug endpoint to test authentication flow
-app.get('/api/auth/debug', (req, res) => {
-  res.json({
-    message: 'Auth debug endpoint',
-    environment: {
-      APP_URL: process.env.APP_URL || 'https://privaseeai.net',
-      GH_CLIENT_ID: process.env.GH_CLIENT_ID ? 'configured' : 'missing',
-      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? 'configured' : 'missing'
-    },
-    timestamp: new Date().toISOString()
-  });
+app.get('/api/debug/env', async (req, res) => {
+  try {
+    const clientId = await getSecret('GH-CLIENT-ID');
+    res.json({
+      GH_CLIENT_ID: clientId ? clientId.substring(0, 10) + '...' : 'MISSING',
+      KEY_VAULT: 'websecurityapp-kv.vault.azure.net',
+      TIMESTAMP: new Date().toISOString()
+    });
+  } catch (error) {
+    res.json({ error: error.message });
+  }
 });
 
-// Static file serving (must be last)
-// Check if dist directory exists
-const distPath = path.join(__dirname, 'dist');
-console.log('Checking dist directory:', distPath);
-console.log('Dist directory exists:', fs.existsSync(distPath));
-
-if (fs.existsSync(distPath)) {
-  // Serve static files from the dist directory
-  app.use(express.static(distPath));
-  console.log('Serving static files from dist directory');
-} else {
-  console.error('Dist directory not found!');
-  // Serve current directory as fallback
-  app.use(express.static(__dirname));
-}
-
-// For any routes that don't match static files, serve the index.html file
 app.get('*', (req, res) => {
-  const indexPath = path.join(distPath, 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send(`
-      <h1>Application Status</h1>
-      <p>Dist directory: ${distPath}</p>
-      <p>Dist exists: ${fs.existsSync(distPath)}</p>
-      <p>Current directory: ${__dirname}</p>
-      <p>Files in current directory: ${fs.readdirSync(__dirname).join(', ')}</p>
-    `);
-  }
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-// Configure port for container deployment
-const port = process.env.PORT || process.env.WEBSITES_PORT || 8080;
-
-console.log(`=== STARTING SERVER ON PORT ${port} ===`);
-
-app.listen(port, '0.0.0.0', () => {
-  console.log(`✅ Server running successfully!`);
-  console.log(`📍 Server listening on http://0.0.0.0:${port}`);
-  console.log(`🔗 Health check available at http://0.0.0.0:${port}/health`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-});
-
-// Graceful shutdown handling
-process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
-  process.exit(0);
-});
-
-process.on('SIGINT', () => {
-  console.log('SIGINT signal received: closing HTTP server');
-  process.exit(0);
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
 });
