@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Domain Configuration Script for aurelianware.com
+# Domain Configuration Script for privaseeai.net
 # This script will check DNS propagation and configure the domain in Azure
 
-DOMAIN="aurelianware.com"
-WEBAPP_NAME="ai-security-monitor"
-RESOURCE_GROUP="websecurity-prod-rg"
+DOMAIN="privaseeai.net"
+WEBAPP_NAME="websecurityapp"
+RESOURCE_GROUP="rg-websecurityapp-prod"
 VERIFICATION_ID="160080722F0D17A3A4FFF02F5256670F0B0EDE8B8F8BC2931E7CFAF19E543B3A"
-AZURE_IP="20.119.16.34"
+AZURE_IP="20.119.128.21"
 
 echo "🌐 Domain Configuration for $DOMAIN"
 echo "=================================================="
