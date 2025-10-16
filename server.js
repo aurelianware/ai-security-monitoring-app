@@ -36,6 +36,10 @@ const path = require('path');
 const fs = require('fs');
 const app = express();
 
+// Middleware for JSON parsing
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // Check if dist directory exists
 const distPath = path.join(__dirname, 'dist');
 console.log('Checking dist directory:', distPath);
@@ -59,6 +63,40 @@ app.get('/api/health', (req, res) => {
     distExists: fs.existsSync(distPath),
     currentDir: __dirname
   });
+});
+
+// Simple session endpoint for NextAuth.js compatibility
+app.get('/api/auth/session', (req, res) => {
+  console.log('Session endpoint called');
+  // For now, return a simple response to avoid the JSON parsing error
+  res.json({ user: null, expires: null });
+});
+
+// Simple providers endpoint for NextAuth.js compatibility  
+app.get('/api/auth/providers', (req, res) => {
+  console.log('Providers endpoint called');
+  res.json({
+    github: {
+      id: "github",
+      name: "GitHub",
+      type: "oauth",
+      signinUrl: "/api/auth/signin/github",
+      callbackUrl: "/api/auth/callback/github"
+    },
+    google: {
+      id: "google", 
+      name: "Google",
+      type: "oauth",
+      signinUrl: "/api/auth/signin/google",
+      callbackUrl: "/api/auth/callback/google"
+    }
+  });
+});
+
+// Simple CSRF endpoint for NextAuth.js compatibility
+app.get('/api/auth/csrf', (req, res) => {
+  console.log('CSRF endpoint called');
+  res.json({ csrfToken: 'mock-csrf-token' });
 });
 
 // For any routes that don't match static files, serve the index.html file
