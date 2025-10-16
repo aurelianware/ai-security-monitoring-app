@@ -40,21 +40,6 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Check if dist directory exists
-const distPath = path.join(__dirname, 'dist');
-console.log('Checking dist directory:', distPath);
-console.log('Dist directory exists:', fs.existsSync(distPath));
-
-if (fs.existsSync(distPath)) {
-  // Serve static files from the dist directory
-  app.use(express.static(distPath));
-  console.log('Serving static files from dist directory');
-} else {
-  console.error('Dist directory not found!');
-  // Serve current directory as fallback
-  app.use(express.static(__dirname));
-}
-
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -98,6 +83,21 @@ app.get('/api/auth/csrf', (req, res) => {
   console.log('CSRF endpoint called');
   res.json({ csrfToken: 'mock-csrf-token' });
 });
+
+// Check if dist directory exists
+const distPath = path.join(__dirname, 'dist');
+console.log('Checking dist directory:', distPath);
+console.log('Dist directory exists:', fs.existsSync(distPath));
+
+if (fs.existsSync(distPath)) {
+  // Serve static files from the dist directory
+  app.use(express.static(distPath));
+  console.log('Serving static files from dist directory');
+} else {
+  console.error('Dist directory not found!');
+  // Serve current directory as fallback
+  app.use(express.static(__dirname));
+}
 
 // For any routes that don't match static files, serve the index.html file
 app.get('*', (req, res) => {
