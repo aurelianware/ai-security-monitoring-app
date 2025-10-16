@@ -10,7 +10,9 @@ FROM node:20-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 COPY package*.json ./
-RUN npm ci --omit=dev
+# Copy package-lock.json to ensure exact versions
+COPY package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts
 COPY --from=build /app/dist ./dist
 COPY server.js ./server.js
 EXPOSE 8080
