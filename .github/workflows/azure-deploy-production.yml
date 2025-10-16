@@ -86,6 +86,9 @@ jobs:
         
         az webapp config set --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group rg-websecurityapp-prod \
           --startup-file "node server.js"
+          
+        # Restart the app to clear any deployment locks
+        az webapp restart --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group rg-websecurityapp-prod
 
     - name: 'Deploy to Azure Web App'
       id: deploy-to-webapp
@@ -93,6 +96,8 @@ jobs:
       with:
         app-name: ${{ env.AZURE_WEBAPP_NAME }}
         package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+        clean: true
+        restart: true
 
     - name: 'Health Check'
       run: |
