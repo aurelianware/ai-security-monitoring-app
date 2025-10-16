@@ -106,9 +106,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signIn = (provider: 'github' | 'google') => {
     console.log(`🚀 signIn called with provider: ${provider}`);
-    console.log(`🌐 Redirecting to: /auth/${provider}`);
-    // Redirect to OAuth provider
-    window.location.href = `/auth/${provider}`;
+    const authUrl = `/auth/${provider}`;
+    console.log(`🌐 Redirecting to: ${authUrl}`);
+    
+    // Try multiple redirect methods for better browser compatibility
+    try {
+      window.location.assign(authUrl);
+    } catch (error) {
+      console.error('window.location.assign failed:', error);
+      try {
+        window.location.href = authUrl;
+      } catch (error2) {
+        console.error('window.location.href failed:', error2);
+        // Fallback: open in new window if redirect fails
+        window.open(authUrl, '_self');
+      }
+    }
   };
 
   const signOut = async () => {
