@@ -74,13 +74,12 @@ jobs:
       run: npm audit --audit-level high
 
     - name: Run Snyk security scan
-      if: ${{ secrets.SNYK_TOKEN != '' }}
       uses: snyk/actions/node@master
+      continue-on-error: true
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
         args: --severity-threshold=high --all-projects
-      continue-on-error: true
 
   typescript-security:
     name: TypeScript Security Checks
