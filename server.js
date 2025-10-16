@@ -50,6 +50,17 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Debug endpoint for environment variables
+app.get('/api/debug/env', (req, res) => {
+  res.json({
+    GH_CLIENT_ID: process.env.GH_CLIENT_ID ? 'SET' : 'MISSING',
+    GH_CLIENT_SECRET: process.env.GH_CLIENT_SECRET ? 'SET' : 'MISSING',
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'MISSING',
+    NODE_ENV: process.env.NODE_ENV || 'MISSING',
+    PORT: process.env.PORT || 'MISSING'
+  });
+});
+
 // Authentication endpoints
 app.get('/api/auth/me', (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
