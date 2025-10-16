@@ -55,7 +55,7 @@ app.get('/api/debug/env', (req, res) => {
   res.json({
     GH_CLIENT_ID: process.env.GH_CLIENT_ID ? 'SET' : 'MISSING',
     GH_CLIENT_SECRET: process.env.GH_CLIENT_SECRET ? 'SET' : 'MISSING',
-    NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'MISSING',
+    APP_URL: process.env.APP_URL || process.env.NEXTAUTH_URL || 'MISSING',
     NODE_ENV: process.env.NODE_ENV || 'MISSING',
     PORT: process.env.PORT || 'MISSING'
   });
@@ -79,7 +79,7 @@ app.post('/api/auth/signout', (req, res) => {
 // OAuth provider signin redirects
 app.get('/api/auth/signin/github', (req, res) => {
   const clientId = process.env.GH_CLIENT_ID;
-  const redirectUri = `${process.env.NEXTAUTH_URL}/api/auth/callback/github`;
+  const redirectUri = `${process.env.APP_URL || process.env.NEXTAUTH_URL || 'https://privaseeai.net'}/api/auth/callback/github`;
   
   const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user:email`;
   
@@ -89,7 +89,7 @@ app.get('/api/auth/signin/github', (req, res) => {
 
 app.get('/api/auth/signin/google', (req, res) => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = `${process.env.NEXTAUTH_URL}/api/auth/callback/google`;
+  const redirectUri = `${process.env.APP_URL || process.env.NEXTAUTH_URL || 'https://privaseeai.net'}/api/auth/callback/google`;
   
   const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid email profile`;
   
@@ -186,7 +186,7 @@ app.get('/api/auth/callback/google', async (req, res) => {
         client_secret: process.env.GOOGLE_CLIENT_SECRET,
         code: code,
         grant_type: 'authorization_code',
-        redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/google`,
+        redirect_uri: `${process.env.APP_URL || 'https://privaseeai.net'}/api/auth/callback/google`,
       }),
     });
 
@@ -230,7 +230,7 @@ app.get('/api/auth/debug', (req, res) => {
   res.json({
     message: 'Auth debug endpoint',
     environment: {
-      NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+      APP_URL: process.env.APP_URL || 'https://privaseeai.net',
       GH_CLIENT_ID: process.env.GH_CLIENT_ID ? 'configured' : 'missing',
       GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? 'configured' : 'missing'
     },
@@ -238,37 +238,7 @@ app.get('/api/auth/debug', (req, res) => {
   });
 });
 
-// Legacy NextAuth.js compatibility endpoints (for gradual migration)
-app.get('/api/auth/session', (req, res) => {
-  console.log('Legacy session endpoint called');
-  res.json({ user: null, expires: null });
-});
-
-app.get('/api/auth/providers', (req, res) => {
-  console.log('Providers endpoint called');
-  res.json({
-    github: {
-      id: "github",
-      name: "GitHub",
-      type: "oauth",
-      signinUrl: "/api/auth/signin/github",
-      callbackUrl: "/api/auth/callback/github"
-    },
-    google: {
-      id: "google", 
-      name: "Google",
-      type: "oauth",
-      signinUrl: "/api/auth/signin/google",
-      callbackUrl: "/api/auth/callback/google"
-    }
-  });
-});
-
-app.get('/api/auth/csrf', (req, res) => {
-  console.log('CSRF endpoint called');
-  res.json({ csrfToken: 'mock-csrf-token' });
-});
-
+// Static file serving (must be last)
 // Check if dist directory exists
 const distPath = path.join(__dirname, 'dist');
 console.log('Checking dist directory:', distPath);
