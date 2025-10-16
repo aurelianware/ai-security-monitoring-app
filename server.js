@@ -23,6 +23,13 @@ async function getSecret(name) {
 
 app.use(express.json());
 
+// Security headers
+app.use((req, res, next) => {
+  // Set frame-ancestors via HTTP header (more secure than meta tag)
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
+  next();
+});
+
 // GitHub OAuth
 app.get('/auth/github', async (req, res) => {
   try {
