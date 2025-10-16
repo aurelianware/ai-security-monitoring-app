@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '../contexts/AuthContext';
 import { Crown, Zap, Shield, CheckCircle, AlertTriangle } from 'lucide-react';
 import { SUBSCRIPTION_PLANS, SubscriptionPlan } from '../lib/stripe';
 
@@ -10,15 +10,15 @@ interface UserSubscription {
 }
 
 export const SubscriptionStatus = () => {
-  const { data: session } = useSession();
+  const { user, isAuthenticated } = useAuth();
   const [subscription, setSubscription] = useState<UserSubscription | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (session?.user) {
+    if (isAuthenticated && user) {
       fetchSubscriptionStatus();
     }
-  }, [session]);
+  }, [isAuthenticated, user]);
 
   const fetchSubscriptionStatus = async () => {
     try {
