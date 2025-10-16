@@ -28,7 +28,7 @@ app.use(express.static(path.join(__dirname, 'dist')));
 app.get('/auth/github', async (req, res) => {
   try {
     const clientId = await getSecret('GH-CLIENT-ID');
-    const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=https://privaseeai.net/auth/github/callback&scope=read:user`;
+    const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=https://privaseeai.net/auth/github/callback&scope=read:user,user:email`;
     res.redirect(authUrl);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -61,10 +61,20 @@ app.get('/auth/github/callback', async (req, res) => {
     });
     const userData = await userResponse.json();
 
+    // Get user email separately (GitHub may not return email in user endpoint)
+    const emailResponse = await fetch('https://api.github.com/user/emails', {
+      headers: { 'Authorization': `Bearer ${tokenData.access_token}` }
+    });
+    const emailData = await emailResponse.json();
+    const primaryEmail = emailData.find(email => email.primary)?.email || userData.email;
+
     const token = Buffer.from(JSON.stringify({
-      id: userData.id,
+      id: userData.id.toString(),
       login: userData.login,
-      name: userData.name,
+      name: userData.name || userData.login,
+      email: primaryEmail || `${userData.login}@github.local`,
+      image: userData.avatar_url,
+      provider: 'github',
       expires: Date.now() + 86400000
     })).toString('base64');
 
@@ -72,6 +82,11 @@ app.get('/auth/github/callback', async (req, res) => {
   } catch (error) {
     res.redirect(`/?error=auth_failed`);
   }
+});
+
+// Signout endpoint
+app.post('/api/auth/signout', (req, res) => {
+  res.json({ success: true });
 });
 
 app.get('/api/debug/env', async (req, res) => {

@@ -46,7 +46,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           // Parse token from URL
           try {
             const userData = JSON.parse(atob(urlToken));
-            setUser(userData);
+            
+            // Map GitHub user data to our User interface
+            const mappedUser: User = {
+              id: userData.id.toString(),
+              email: userData.email,
+              name: userData.name || userData.login,
+              image: userData.image,
+              provider: userData.provider || 'github'
+            };
+            
+            setUser(mappedUser);
             localStorage.setItem('auth_token', urlToken);
             
             // Clean up URL
@@ -64,10 +74,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           try {
             const userData = JSON.parse(atob(token));
             
-            // Check if token is not too old (24 hours)
-            const tokenAge = Date.now() - (userData.timestamp || 0);
-            if (tokenAge < 24 * 60 * 60 * 1000) {
-              setUser(userData);
+            // Check if token is not expired
+            if (userData.expires && userData.expires > Date.now()) {
+              const mappedUser: User = {
+                id: userData.id.toString(),
+                email: userData.email,
+                name: userData.name || userData.login,
+                image: userData.image,
+                provider: userData.provider || 'github'
+              };
+              setUser(mappedUser);
             } else {
               // Token expired
               localStorage.removeItem('auth_token');
@@ -90,7 +106,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const signIn = (provider: 'github' | 'google') => {
     // Redirect to OAuth provider
-    window.location.href = `/api/auth/signin/${provider}`;
+    window.location.href = `/auth/${provider}`;
   };
 
   const signOut = async () => {
