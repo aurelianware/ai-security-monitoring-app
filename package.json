@@ -20,6 +20,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@auth0/auth0-react": "^2.7.0",
     "@azure/identity": "^4.13.0",
     "@azure/keyvault-secrets": "^4.10.0",
     "@prisma/client": "^6.17.1",

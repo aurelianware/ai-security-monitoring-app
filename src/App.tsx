@@ -4,8 +4,7 @@ import CameraStream from './components/CameraStream';
 import DetectionOverlay from './components/DetectionOverlay';
 import EventsList from './components/EventsList';
 import SettingsPanel from './components/SettingsPanel';
-import { AuthProvider } from './components/AuthProvider';
-import { ProtectedRoute, UserProfileDropdown } from './components/Auth';
+import { ProtectedRoute, UserProfileDropdown } from './components/Auth0Components';
 import syncQueueService from './utils/syncQueue';
 import localStorageService, { SecurityEvent as StoredSecurityEvent } from './utils/storage';
 
@@ -444,11 +443,9 @@ function App() {
 // Wrap App with Authentication
 function AuthenticatedApp() {
   return (
-    <AuthProvider>
-      <ProtectedRoute>
-        <App />
-      </ProtectedRoute>
-    </AuthProvider>
+    <ProtectedRoute>
+      <App />
+    </ProtectedRoute>
   );
 }
 
