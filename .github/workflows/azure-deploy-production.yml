@@ -44,6 +44,12 @@ jobs:
     - name: Run tests
       run: npm test || true  # Continue even if no tests
 
+    - name: Debug - Check startup script exists
+      run: |
+        echo "=== Checking for startup.sh ==="
+        ls -la startup.sh || echo "startup.sh not found"
+        file startup.sh || echo "Cannot check startup.sh file type"
+
     - name: Upload artifact for deployment job
       uses: actions/upload-artifact@v4
       with:
@@ -70,6 +76,14 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: node-app
+
+    - name: Debug - Check downloaded files
+      run: |
+        echo "=== Downloaded Files ==="
+        ls -la
+        echo "=== Checking for startup.sh in deployment ==="
+        ls -la startup.sh || echo "startup.sh not found in artifact"
+        file startup.sh || echo "Cannot check startup.sh file type"
 
     - name: 'Login to Azure'
       uses: azure/login@v1
