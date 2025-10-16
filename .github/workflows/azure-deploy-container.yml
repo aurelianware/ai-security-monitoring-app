@@ -38,7 +38,7 @@ jobs:
       run: npm test || true
 
     - name: Login to Azure
-      uses: azure/login@v1
+      uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
@@ -96,7 +96,7 @@ jobs:
         az webapp config appsettings set --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} \
           --settings \
             NODE_ENV="production" \
-            NEXTAUTH_URL="https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net" \
+            NEXTAUTH_URL="https://privaseeai.net" \
             NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}" \
             GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
             GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
