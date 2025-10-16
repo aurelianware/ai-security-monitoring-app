@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Camera, Shield, AlertTriangle, Settings } from 'lucide-react';
+import { Camera, Shield, AlertTriangle, Settings as SettingsIcon } from 'lucide-react';
 import CameraStream from './components/CameraStream';
 import DetectionOverlay from './components/DetectionOverlay';
 import EventsList from './components/EventsList';
@@ -316,7 +316,7 @@ function App() {
             {[
               { id: 'live', label: 'Live View', icon: Camera },
               { id: 'events', label: 'Events', icon: AlertTriangle },
-              { id: 'settings', label: 'Settings', icon: Settings }
+              { id: 'settings', label: 'Settings', icon: SettingsIcon }
             ].map(tab => {
               const Icon = tab.icon;
               return (
