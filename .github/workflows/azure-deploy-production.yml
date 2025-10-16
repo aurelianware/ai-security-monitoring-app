@@ -1,4 +1,4 @@
-name: Deploy to Azure App Service
+name: Deploy to Azure Container App
 
 on:
   push:
@@ -6,9 +6,10 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: websecurityapp                # Set this to your application's name
-  AZURE_WEBAPP_PACKAGE_PATH: '.'                  # Set this to the path to your web app project
-  NODE_VERSION: '20.x'                            # Set this to the node version to use
+  AZURE_WEBAPP_NAME: websecurityapp
+  AZURE_CONTAINER_REGISTRY: websecurityappacr      # Azure Container Registry name
+  IMAGE_NAME: websecurityapp
+  RESOURCE_GROUP: rg-websecurityapp-prod
 
 permissions:
   contents: read

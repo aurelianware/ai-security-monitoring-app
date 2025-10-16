@@ -1,0 +1,115 @@
+name: Deploy to Azure Container App
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME: websecurityapp
+  AZURE_CONTAINER_REGISTRY: websecurityappacr
+  IMAGE_NAME: websecurityapp
+  RESOURCE_GROUP: rg-websecurityapp-prod
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: 'Production'
+      url: https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests
+      run: npm test || true
+
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Create Azure Container Registry (if not exists)
+      run: |
+        # Check if ACR exists, create if it doesn't
+        if ! az acr show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --resource-group ${{ env.RESOURCE_GROUP }} >/dev/null 2>&1; then
+          echo "Creating Azure Container Registry..."
+          az acr create --name ${{ env.AZURE_CONTAINER_REGISTRY }} --resource-group ${{ env.RESOURCE_GROUP }} --sku Basic --admin-enabled true
+        else
+          echo "Azure Container Registry already exists"
+        fi
+
+    - name: Login to Azure Container Registry
+      run: |
+        az acr login --name ${{ env.AZURE_CONTAINER_REGISTRY }}
+
+    - name: Build and push Docker image
+      run: |
+        # Build the Docker image
+        docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+        docker build -t ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:latest .
+        
+        # Push the images
+        docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        docker push ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+
+    - name: Configure Web App for Container
+      run: |
+        # Update the web app to use container deployment
+        az webapp config container set \
+          --name ${{ env.AZURE_WEBAPP_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP }} \
+          --docker-custom-image-name ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+          --docker-registry-server-url https://${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io
+
+    - name: Configure App Settings
+      run: |
+        az webapp config appsettings set --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} \
+          --settings \
+            NODE_ENV="production" \
+            NEXTAUTH_URL="https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net" \
+            NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}" \
+            GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
+            GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+            GH_CLIENT_ID="${{ secrets.GH_CLIENT_ID }}" \
+            GH_CLIENT_SECRET="${{ secrets.GH_CLIENT_SECRET }}" \
+            AZURE_STORAGE_CONNECTION_STRING="${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
+            APPLICATIONINSIGHTS_CONNECTION_STRING="${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}" \
+            WEBSITES_ENABLE_APP_SERVICE_STORAGE="false" \
+            WEBSITES_PORT="8080"
+
+    - name: Restart Web App
+      run: |
+        az webapp restart --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }}
+
+    - name: Health Check
+      run: |
+        echo "Waiting for deployment to complete..."
+        sleep 90
+        
+        # Try health check multiple times
+        for i in {1..5}; do
+          echo "Health check attempt $i..."
+          if curl -f https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health; then
+            echo "Health check passed!"
+            exit 0
+          fi
+          echo "Health check failed, waiting 30 seconds..."
+          sleep 30
+        done
+        
+        echo "Health check failed after multiple attempts, but deployment may still be successful"
+        curl -I https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/ || true

@@ -1,13 +1,14 @@
-// Debugging and dependency installation for Azure
-console.log('=== SERVER STARTUP DEBUG ===');
+// Enhanced container-ready Express server with comprehensive debugging
+console.log('=== CONTAINER STARTUP DEBUG ===');
 console.log('Node.js version:', process.version);
 console.log('Platform:', process.platform);
 console.log('Working directory:', process.cwd());
-console.log('Environment variables:', {
+console.log('Container environment:', {
   NODE_ENV: process.env.NODE_ENV,
   PORT: process.env.PORT,
   PWD: process.env.PWD,
-  PATH: process.env.PATH?.split(':').slice(0, 5) // First 5 PATH entries
+  HOSTNAME: process.env.HOSTNAME,
+  WEBSITE_HOSTNAME: process.env.WEBSITE_HOSTNAME
 });
 
 // List directory contents
@@ -16,7 +17,8 @@ console.log('Directory contents:', require('fs').readdirSync('.'));
 // Check for node_modules and specific dependencies
 try {
   const nodeModules = require('fs').readdirSync('./node_modules');
-  console.log('node_modules exists, first 10 modules:', nodeModules.slice(0, 10));
+  console.log('node_modules exists, total modules:', nodeModules.length);
+  console.log('First 10 modules:', nodeModules.slice(0, 10));
   
   // Check specifically for express
   const expressExists = require('fs').existsSync('./node_modules/express');
@@ -75,9 +77,25 @@ app.get('*', (req, res) => {
   }
 });
 
-const port = process.env.PORT || 8080;
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-  console.log(`Current directory: ${__dirname}`);
-  console.log(`Dist directory exists: ${fs.existsSync(distPath)}`);
+// Configure port for container deployment
+const port = process.env.PORT || process.env.WEBSITES_PORT || 8080;
+
+console.log(`=== STARTING SERVER ON PORT ${port} ===`);
+
+app.listen(port, '0.0.0.0', () => {
+  console.log(`✅ Server running successfully!`);
+  console.log(`📍 Server listening on http://0.0.0.0:${port}`);
+  console.log(`🔗 Health check available at http://0.0.0.0:${port}/health`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+// Graceful shutdown handling
+process.on('SIGTERM', () => {
+  console.log('SIGTERM signal received: closing HTTP server');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT signal received: closing HTTP server');
+  process.exit(0);
 });
