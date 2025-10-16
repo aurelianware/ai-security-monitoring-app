@@ -82,7 +82,7 @@ jobs:
             APPLICATIONINSIGHTS_CONNECTION_STRING="${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}" \
             NODE_ENV="production" \
             WEBSITE_NODE_DEFAULT_VERSION="20-lts" \
-            SCM_DO_BUILD_DURING_DEPLOYMENT="true"
+            SCM_DO_BUILD_DURING_DEPLOYMENT="false"
         
         az webapp config set --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group rg-websecurityapp-prod \
           --startup-file "node server.js"
