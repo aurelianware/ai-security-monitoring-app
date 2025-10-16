@@ -70,7 +70,7 @@ jobs:
 
     - name: 'Configure App Settings'
       run: |
-        az webapp config appsettings set --name ${{ secrets.AZURE_WEBAPP_NAME }} --resource-group rg-websecurityapp-prod \
+        az webapp config appsettings set --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group rg-websecurityapp-prod \
           --settings \
             NEXTAUTH_URL="${{ secrets.NEXTAUTH_URL }}" \
             NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}" \
@@ -80,16 +80,21 @@ jobs:
             GH_CLIENT_SECRET="${{ secrets.GH_CLIENT_SECRET }}" \
             AZURE_STORAGE_CONNECTION_STRING="${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
             APPLICATIONINSIGHTS_CONNECTION_STRING="${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}" \
-            NODE_ENV="production"
+            NODE_ENV="production" \
+            WEBSITE_NODE_DEFAULT_VERSION="20-lts" \
+            SCM_DO_BUILD_DURING_DEPLOYMENT="true"
+        
+        az webapp config set --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group rg-websecurityapp-prod \
+          --startup-file "node server.js"
 
     - name: 'Deploy to Azure Web App'
       id: deploy-to-webapp
       uses: azure/webapps-deploy@v2
       with:
-        app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
         package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
 
     - name: 'Health Check'
       run: |
         sleep 30
-        curl -f https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net/api/health || echo "Health check failed"
+        curl -f https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/api/health || echo "Health check failed"
