@@ -22,7 +22,6 @@ async function getSecret(name) {
 }
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'dist')));
 
 // GitHub OAuth
 app.get('/auth/github', async (req, res) => {
@@ -102,6 +101,10 @@ app.get('/api/debug/env', async (req, res) => {
   }
 });
 
+// Serve static files (React build)
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Handle client-side routing (SPA)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
