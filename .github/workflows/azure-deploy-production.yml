@@ -32,6 +32,15 @@ jobs:
     - name: Build application
       run: npm run build
 
+    - name: Debug - List build output
+      run: |
+        echo "=== Build Output ==="
+        ls -la
+        echo "=== Dist Directory ==="
+        ls -la dist/
+        echo "=== Node Modules Check ==="
+        ls node_modules/ | head -10
+
     - name: Run tests
       run: npm test || true  # Continue even if no tests
 
@@ -83,6 +92,9 @@ jobs:
             SCM_DO_BUILD_DURING_DEPLOYMENT="true" \
             ENABLE_ORYX_BUILD="true" \
             WEBSITE_RUN_FROM_PACKAGE="0"
+            
+        az webapp config set --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group rg-websecurityapp-prod \
+          --startup-file "bash startup.sh"
 
     - name: 'Health Check'
       run: |
