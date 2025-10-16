@@ -1,4 +1,33 @@
 // Enhanced container-ready Express server with comprehensive debugging
+console.l// Debug endpoint for environment variables
+app.get('/api/debug/env', async (req, res) => {
+  try {
+    const ghClientId = await getSecret('GH-CLIENT-ID');
+    const ghClientSecret = await getSecret('GH-CLIENT-SECRET');
+    
+    res.json({
+      GH_CLIENT_ID: ghClientId ? 'SET (Key Vault)' : 'MISSING',
+      GH_CLIENT_SECRET: ghClientSecret ? 'SET (Key Vault)' : 'MISSING',
+      APP_URL: process.env.APP_URL || process.env.NEXTAUTH_URL || 'MISSING',
+      NODE_ENV: process.env.NODE_ENV || 'MISSING',
+      PORT: process.env.PORT || 'MISSING',
+      UPDATED: new Date().toISOString(),
+      KEY_VAULT: 'websecurityapp-kv.vault.azure.net'
+    });
+  } catch (error) {
+    res.json({
+      GH_CLIENT_ID: process.env.GH_CLIENT_ID ? 'SET (Env)' : 'MISSING',
+      GH_CLIENT_SECRET: process.env.GH_CLIENT_SECRET ? 'SET (Env)' : 'MISSING', 
+      APP_URL: process.env.APP_URL || process.env.NEXTAUTH_URL || 'MISSING',
+      NODE_ENV: process.env.NODE_ENV || 'MISSING',
+      PORT: process.env.PORT || 'MISSING',
+      UPDATED: new Date().toISOString(),
+      KEY_VAULT_ERROR: error.message
+    });
+  }
+});
+
+// Container startup debug logging
 console.log('=== CONTAINER STARTUP DEBUG ===');
 console.log('Node.js version:', process.version);
 console.log('Platform:', process.platform);
@@ -34,7 +63,36 @@ try {
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const { SecretClient } = require('@azure/keyvault-secrets');
+const { DefaultAzureCredential } = require('@azure/identity');
+
 const app = express();
+
+// Key Vault setup
+const keyVaultUrl = "https://websecurityapp-kv.vault.azure.net/";
+const credential = new DefaultAzureCredential();
+const client = new SecretClient(keyVaultUrl, credential);
+
+// Cache for secrets to avoid repeated Key Vault calls
+const secretsCache = {};
+
+async function getSecret(secretName) {
+  if (secretsCache[secretName]) {
+    return secretsCache[secretName];
+  }
+  
+  try {
+    const secret = await client.getSecret(secretName);
+    secretsCache[secretName] = secret.value;
+    console.log(`✅ Retrieved secret: ${secretName}`);
+    return secret.value;
+  } catch (error) {
+    console.error(`❌ Failed to retrieve secret ${secretName}:`, error.message);
+    // Fallback to environment variable
+    const envName = secretName.replace(/-/g, '_');
+    return process.env[envName];
+  }
+}
 
 // Middleware for JSON parsing
 app.use(express.json());
@@ -57,7 +115,8 @@ app.get('/api/debug/env', (req, res) => {
     GH_CLIENT_SECRET: process.env.GH_CLIENT_SECRET ? 'SET' : 'MISSING',
     APP_URL: process.env.APP_URL || process.env.NEXTAUTH_URL || 'MISSING',
     NODE_ENV: process.env.NODE_ENV || 'MISSING',
-    PORT: process.env.PORT || 'MISSING'
+    PORT: process.env.PORT || 'MISSING',
+    UPDATED: new Date().toISOString()
   });
 });
 
@@ -77,24 +136,34 @@ app.post('/api/auth/signout', (req, res) => {
 });
 
 // OAuth provider signin redirects
-app.get('/api/auth/signin/github', (req, res) => {
-  const clientId = process.env.GH_CLIENT_ID;
-  const redirectUri = `${process.env.APP_URL || process.env.NEXTAUTH_URL || 'https://privaseeai.net'}/api/auth/callback/github`;
-  
-  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user:email`;
-  
-  console.log('Redirecting to GitHub OAuth:', githubAuthUrl);
-  res.redirect(githubAuthUrl);
+app.get('/api/auth/signin/github', async (req, res) => {
+  try {
+    const clientId = await getSecret('GH-CLIENT-ID');
+    const redirectUri = `${process.env.APP_URL || process.env.NEXTAUTH_URL || 'https://privaseeai.net'}/api/auth/callback/github`;
+    
+    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user:email`;
+    
+    console.log('Redirecting to GitHub OAuth:', githubAuthUrl);
+    res.redirect(githubAuthUrl);
+  } catch (error) {
+    console.error('GitHub OAuth error:', error);
+    res.status(500).json({ error: 'Failed to initiate GitHub OAuth' });
+  }
 });
 
-app.get('/api/auth/signin/google', (req, res) => {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const redirectUri = `${process.env.APP_URL || process.env.NEXTAUTH_URL || 'https://privaseeai.net'}/api/auth/callback/google`;
-  
-  const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid email profile`;
-  
-  console.log('Redirecting to Google OAuth:', googleAuthUrl);
-  res.redirect(googleAuthUrl);
+app.get('/api/auth/signin/google', async (req, res) => {
+  try {
+    const clientId = await getSecret('GOOGLE-CLIENT-ID') || process.env.GOOGLE_CLIENT_ID;
+    const redirectUri = `${process.env.APP_URL || process.env.NEXTAUTH_URL || 'https://privaseeai.net'}/api/auth/callback/google`;
+    
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid email profile`;
+    
+    console.log('Redirecting to Google OAuth:', googleAuthUrl);
+    res.redirect(googleAuthUrl);
+  } catch (error) {
+    console.error('Google OAuth error:', error);
+    res.status(500).json({ error: 'Failed to initiate Google OAuth' });
+  }
 });
 
 // OAuth callbacks
@@ -106,6 +175,10 @@ app.get('/api/auth/callback/github', async (req, res) => {
   }
 
   try {
+    // Get secrets from Key Vault
+    const clientId = await getSecret('GH-CLIENT-ID');
+    const clientSecret = await getSecret('GH-CLIENT-SECRET');
+    
     // Exchange code for access token
     const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
@@ -114,8 +187,8 @@ app.get('/api/auth/callback/github', async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        client_id: process.env.GH_CLIENT_ID,
-        client_secret: process.env.GH_CLIENT_SECRET,
+        client_id: clientId,
+        client_secret: clientSecret,
         code: code,
       }),
     });
