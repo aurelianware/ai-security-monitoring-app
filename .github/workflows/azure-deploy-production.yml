@@ -41,7 +41,6 @@ jobs:
         name: node-app
         path: |
           .
-          !node_modules/
           !.git/
           !.github/
           !deploy/
@@ -80,7 +79,10 @@ jobs:
         az webapp config appsettings set --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group rg-websecurityapp-prod \
           --settings \
             NODE_ENV="production" \
-            WEBSITE_NODE_DEFAULT_VERSION="20-lts"
+            WEBSITE_NODE_DEFAULT_VERSION="20-lts" \
+            SCM_DO_BUILD_DURING_DEPLOYMENT="true" \
+            ENABLE_ORYX_BUILD="true" \
+            WEBSITE_RUN_FROM_PACKAGE="0"
 
     - name: 'Health Check'
       run: |
