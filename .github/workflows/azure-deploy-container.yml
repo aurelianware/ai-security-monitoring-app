@@ -65,9 +65,15 @@ jobs:
         # Login to Docker registry
         echo $ACR_PASSWORD | docker login $ACR_LOGIN_SERVER --username $ACR_USERNAME --password-stdin
         
-        # Build and tag the Docker image
-        docker build -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }} .
-        docker build -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:latest .
+        # Build and tag the Docker image with Auth0 build args
+        docker build \
+          --build-arg VITE_AUTH0_DOMAIN=dev-iq215msht4aqtejt.us.auth0.com \
+          --build-arg VITE_AUTH0_CLIENT_ID=OA7bA8Rzh1N2FKXV1zPp1bCHl6MqN8Y6 \
+          -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+        docker build \
+          --build-arg VITE_AUTH0_DOMAIN=dev-iq215msht4aqtejt.us.auth0.com \
+          --build-arg VITE_AUTH0_CLIENT_ID=OA7bA8Rzh1N2FKXV1zPp1bCHl6MqN8Y6 \
+          -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:latest .
         
         # Push the images
         docker push $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }}
