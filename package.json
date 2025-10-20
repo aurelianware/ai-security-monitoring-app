@@ -68,7 +68,7 @@
     "jsdom": "^24.1.0",
     "postcss": "^8.4.29",
     "react-refresh": "^0.18.0",
-    "tailwindcss": "^3.3.3",
+    "tailwindcss": "^4.1.14",
     "typescript": "^5.0.2",
     "vite": "^6.3.6",
     "vite-plugin-pwa": "^1.1.0",
