@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "Home Security App with TensorFlow.js and WebRTC",
   "scripts": {
+    "auth0:test": "ts-node src/utils/testAuthConfig.ts",
+    "keyvault:test": "node -e \"require('./src/utils/keyVault').keyVaultService.getSecret('auth0-client-secret').then(console.log).catch(console.error)\"",
     "dev": "vite",
     "build": "tsc && vite build",
     "start": "node server.js",
@@ -69,6 +71,7 @@
     "postcss": "^8.4.29",
     "react-refresh": "^0.18.0",
     "tailwindcss": "^3.3.3",
+    "ts-node": "^10.9.2",
     "typescript": "^5.0.2",
     "vite": "^6.3.6",
     "vite-plugin-pwa": "^1.0.3",
