@@ -23,10 +23,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Set up Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: '20.x'
         cache: 'npm'
@@ -38,7 +38,7 @@ jobs:
       run: npm test || true
 
     - name: Login to Azure
-      uses: azure/login@v1
+      uses: azure/login@v2
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
@@ -65,9 +65,15 @@ jobs:
         # Login to Docker registry
         echo $ACR_PASSWORD | docker login $ACR_LOGIN_SERVER --username $ACR_USERNAME --password-stdin
         
-        # Build and tag the Docker image
-        docker build -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }} .
-        docker build -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:latest .
+        # Build and tag the Docker image with Auth0 build args
+        docker build \
+          --build-arg VITE_AUTH0_DOMAIN=dev-iq215msht4aqtejt.us.auth0.com \
+          --build-arg VITE_AUTH0_CLIENT_ID=OA7bA8Rzh1N2FKXV1zPp1bCHl6MqN8Y6 \
+          -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }} .
+        docker build \
+          --build-arg VITE_AUTH0_DOMAIN=dev-iq215msht4aqtejt.us.auth0.com \
+          --build-arg VITE_AUTH0_CLIENT_ID=OA7bA8Rzh1N2FKXV1zPp1bCHl6MqN8Y6 \
+          -t $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:latest .
         
         # Push the images
         docker push $ACR_LOGIN_SERVER/${{ env.IMAGE_NAME }}:${{ github.sha }}
@@ -96,12 +102,11 @@ jobs:
         az webapp config appsettings set --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group ${{ env.RESOURCE_GROUP }} \
           --settings \
             NODE_ENV="production" \
-            NEXTAUTH_URL="https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net" \
-            NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}" \
-            GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
-            GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+            APP_URL="https://privaseeai.net" \
             GH_CLIENT_ID="${{ secrets.GH_CLIENT_ID }}" \
             GH_CLIENT_SECRET="${{ secrets.GH_CLIENT_SECRET }}" \
+            GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
+            GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
             AZURE_STORAGE_CONNECTION_STRING="${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}" \
             APPLICATIONINSIGHTS_CONNECTION_STRING="${{ secrets.APPLICATIONINSIGHTS_CONNECTION_STRING }}" \
             WEBSITES_ENABLE_APP_SERVICE_STORAGE="false" \

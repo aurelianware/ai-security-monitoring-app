@@ -34,7 +34,7 @@ jobs:
         queries: security-extended,security-and-quality
 
     - name: Setup Node.js
-      uses: actions/setup-node@v5
+      uses: actions/setup-node@v6
       with:
         node-version: '18'
         cache: 'npm'
@@ -62,7 +62,7 @@ jobs:
       uses: actions/checkout@v5
 
     - name: Setup Node.js
-      uses: actions/setup-node@v5
+      uses: actions/setup-node@v6
       with:
         node-version: '18'
         cache: 'npm'
@@ -74,13 +74,12 @@ jobs:
       run: npm audit --audit-level high
 
     - name: Run Snyk security scan
-      if: ${{ secrets.SNYK_TOKEN != '' }}
       uses: snyk/actions/node@master
+      continue-on-error: true
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
         args: --severity-threshold=high --all-projects
-      continue-on-error: true
 
   typescript-security:
     name: TypeScript Security Checks
@@ -91,7 +90,7 @@ jobs:
       uses: actions/checkout@v5
 
     - name: Setup Node.js
-      uses: actions/setup-node@v5
+      uses: actions/setup-node@v6
       with:
         node-version: '18'
         cache: 'npm'

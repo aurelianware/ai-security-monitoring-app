@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '../contexts/AuthContext';
 import { Check, Zap, Shield, Users, Cloud, Star } from 'lucide-react';
 import { SUBSCRIPTION_PLANS } from '../lib/stripe';
 
@@ -95,14 +95,14 @@ const PricingCard = ({
 };
 
 export const PricingSection = () => {
-  const { data: session } = useSession();
+  const { isAuthenticated } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
 
   const handleSelectPlan = async (planKey: string) => {
-    if (!session) {
-      // Redirect to login
-      window.location.href = '/api/auth/signin';
+    if (!isAuthenticated) {
+      // Redirect to main page for login
+      window.location.href = '/';
       return;
     }
 
