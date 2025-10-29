@@ -1,0 +1,120 @@
+name: Deploy to Azure Container Apps
+
+on:
+  workflow_run:
+    workflows: ["Build and Push to ACR"]
+    types:
+      - completed
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: privaseeai
+  CONTAINER_APP_NAME: privaseeai-app
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Azure Login with Managed Identity
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Get latest image tag
+      id: get-tag
+      run: |
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          IMAGE_TAG="latest"
+        else
+          IMAGE_TAG="${{ github.sha }}"
+        fi
+        echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+    - name: Deploy to Azure Container Apps
+      run: |
+        IMAGE_TAG=${{ steps.get-tag.outputs.IMAGE_TAG }}
+        FULL_IMAGE_NAME=${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${IMAGE_TAG}
+        
+        # Check if Container App exists
+        if az containerapp show \
+          --name ${{ env.CONTAINER_APP_NAME }} \
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+          --output none 2>/dev/null; then
+          
+          # Update existing Container App
+          echo "Updating existing Container App..."
+          az containerapp update \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --image ${FULL_IMAGE_NAME}
+        else
+          # Create new Container App
+          echo "Creating new Container App..."
+          az containerapp create \
+            --name ${{ env.CONTAINER_APP_NAME }} \
+            --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+            --environment ${{ secrets.ACA_ENVIRONMENT }} \
+            --image ${FULL_IMAGE_NAME} \
+            --target-port 8080 \
+            --ingress external \
+            --registry-server ${{ secrets.ACR_NAME }}.azurecr.io \
+            --registry-identity system \
+            --cpu 0.5 \
+            --memory 1.0Gi \
+            --min-replicas 1 \
+            --max-replicas 3
+        fi
+
+    - name: Configure Container App settings
+      run: |
+        az containerapp update \
+          --name ${{ env.CONTAINER_APP_NAME }} \
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+          --set-env-vars \
+            NODE_ENV=production \
+            NEXTAUTH_URL=secretref:nextauth-url \
+            NEXTAUTH_SECRET=secretref:nextauth-secret \
+            AZURE_STORAGE_CONNECTION_STRING=secretref:azure-storage-connection
+
+    - name: Get Container App URL
+      run: |
+        APP_URL=$(az containerapp show \
+          --name ${{ env.CONTAINER_APP_NAME }} \
+          --resource-group ${{ secrets.AZURE_RESOURCE_GROUP }} \
+          --query properties.configuration.ingress.fqdn \
+          --output tsv)
+        echo "Container App URL: https://${APP_URL}"
+        echo "APP_URL=https://${APP_URL}" >> $GITHUB_ENV
+
+    - name: Health check
+      run: |
+        echo "Waiting for deployment to complete..."
+        sleep 60
+        
+        for i in {1..5}; do
+          echo "Health check attempt $i..."
+          if curl -f ${{ env.APP_URL }}/healthz; then
+            echo "✅ Health check passed!"
+            exit 0
+          fi
+          echo "Waiting 30 seconds..."
+          sleep 30
+        done
+        
+        echo "⚠️ Health check did not pass, but deployment may still be successful"
+
+    - name: Logout from Azure
+      if: always()
+      run: az logout

@@ -1,0 +1,72 @@
+name: Build and Push to ACR
+
+on:
+  push:
+    branches: [ main, feat/production-hardening ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: privaseeai
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run linter
+      run: npm run lint || true
+
+    - name: Run tests
+      run: npm test || true
+
+    - name: Build application
+      run: npm run build
+
+    - name: Azure Login with Managed Identity
+      uses: azure/login@v2
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    - name: Login to Azure Container Registry
+      run: |
+        az acr login --name ${{ secrets.ACR_NAME }}
+
+    - name: Build and Push Docker image
+      run: |
+        IMAGE_TAG=${{ github.sha }}
+        FULL_IMAGE_NAME=${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${IMAGE_TAG}
+        LATEST_IMAGE=${{ secrets.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
+        
+        # Build the Docker image
+        docker build -t ${FULL_IMAGE_NAME} -t ${LATEST_IMAGE} .
+        
+        # Push both tags
+        docker push ${FULL_IMAGE_NAME}
+        docker push ${LATEST_IMAGE}
+        
+        echo "Image pushed: ${FULL_IMAGE_NAME}"
+        echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+    - name: Logout from Azure
+      if: always()
+      run: az logout

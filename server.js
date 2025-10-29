@@ -39,16 +39,26 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-app.get('/api/debug/env', async (req, res) => {
-  try {
-    const clientId = await getSecret('GH-CLIENT-ID');
-    res.json({
-      GH_CLIENT_ID: clientId ? clientId.substring(0, 10) + '...' : 'MISSING',
-      KEY_VAULT: 'websecurityapp-kv.vault.azure.net',
-      TIMESTAMP: new Date().toISOString()
-    });
-  } catch (error) {
-    res.json({ error: error.message });
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString()
+  });
+});
+
+// For any routes that don't match static files, serve the index.html file
+app.get('*', (req, res) => {
+  const indexPath = path.join(distPath, 'index.html');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).send(`
+      <h1>Application Status</h1>
+      <p>Dist directory: ${distPath}</p>
+      <p>Dist exists: ${fs.existsSync(distPath)}</p>
+      <p>Current directory: ${__dirname}</p>
+      <p>Files in current directory: ${fs.readdirSync(__dirname).join(', ')}</p>
+    `);
   }
 });
 
