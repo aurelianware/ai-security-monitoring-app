@@ -51,7 +51,7 @@
     "workbox-window": "^7.0.0"
   },
   "devDependencies": {
-    "@capacitor/cli": "^5.4.1",
+    "@capacitor/cli": "^7.4.4",
     "@capacitor/core": "^7.4.4",
     "@eslint/js": "^9.38.0",
     "@microsoft/eslint-formatter-sarif": "^3.1.0",
