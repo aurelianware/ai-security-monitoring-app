@@ -22,11 +22,11 @@
     "test": "vitest"
   },
   "dependencies": {
-    "@auth0/auth0-react": "^2.8.0",
+    "@auth0/auth0-react": "^2.9.0",
     "@azure/identity": "^4.13.0",
     "@azure/keyvault-secrets": "^4.10.0",
     "@prisma/client": "^6.19.0",
-    "@stripe/stripe-js": "^8.4.0",
+    "@stripe/stripe-js": "^8.5.2",
     "@tensorflow-models/coco-ssd": "^2.2.3",
     "@tensorflow/tfjs": "^4.13.0",
     "@tensorflow/tfjs-backend-webgl": "^4.13.0",
@@ -48,7 +48,7 @@
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.6",
     "stripe": "^19.3.1",
-    "workbox-window": "^7.0.0"
+    "workbox-window": "^7.4.0"
   },
   "devDependencies": {
     "@capacitor/cli": "^7.4.4",
@@ -58,9 +58,9 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^14.6.1",
-    "@types/react": "^19.2.5",
+    "@types/react": "^19.2.6",
     "@types/react-dom": "^19.2.3",
-    "@typescript-eslint/eslint-plugin": "^8.46.4",
+    "@typescript-eslint/eslint-plugin": "^8.47.0",
     "@typescript-eslint/parser": "^8.46.0",
     "@vitejs/plugin-react": "^5.1.1",
     "autoprefixer": "^10.4.22",
@@ -74,9 +74,9 @@
     "tailwindcss": "^4.1.17",
     "ts-node": "^10.9.2",
     "typescript": "^5.0.2",
-    "vite": "^7.2.2",
+    "vite": "^7.2.4",
     "vite-plugin-pwa": "^1.1.0",
-    "vitest": "^4.0.8"
+    "vitest": "^4.0.13"
   },
   "keywords": [
     "security",
