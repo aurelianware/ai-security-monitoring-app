@@ -22,7 +22,7 @@ const CameraStream: React.FC<CameraStreamProps> = ({ onDetection, isActive }) =>
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const yoloModelRef = useRef<YOLOModel | null>(null);
-  const detectionLoopRef = useRef<number>();
+  const detectionLoopRef = useRef<number | undefined>(undefined);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
   
