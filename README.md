@@ -1,4 +1,4 @@
-# AI-Powered Security Monitoring App
+# privaseeAI
 
 A sophisticated **web-based security monitoring application** that uses AI object detection to identify and track objects in real-time video streams. Built with React, TypeScript, and TensorFlow.js, featuring advanced overlay detection and cloud synchronization.
 
